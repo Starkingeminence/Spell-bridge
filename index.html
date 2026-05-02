@@ -5,13 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spell Bridge Pro - BNB</title>
 
-<!-- 1. ESSENTIAL POLYFILLS (Must be first) -->
+<!-- Polyfills for Mobile Compatibility -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/buffer/6.0.3/buffer.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/events/3.3.0/events.min.js"></script>
 <script>
     window.Buffer = window.Buffer || buffer.Buffer;
     window.process = { env: { NODE_ENV: 'production' } };
-    window.EventEmitter = EventEmitter;
 </script>
 
 <style>
@@ -57,7 +56,6 @@
     <span class="card-label">Step 2: Connect dApp Link</span>
     <textarea id="wc-uri" placeholder="Paste wc: link here..."></textarea>
     <button id="btn-pair" onclick="startBridge()" disabled>Initialize Bridge</button>
-    <button id="btn-force-load" style="font-size: 10px; border-color: var(--muted); color: var(--muted); display:none;" onclick="loadEngine()">Force Reload Engine</button>
   </div>
 
   <div id="pending-box" class="pending-box">
@@ -82,6 +80,10 @@ let wcClient = null;
 let pendingRequest = null;
 const providers = [];
 
+// Global references for the engine
+let CoreClass = null;
+let Web3WalletClass = null;
+
 function log(msg, color = '') {
   const el = document.getElementById('log');
   const div = document.createElement('div');
@@ -91,7 +93,6 @@ function log(msg, color = '') {
   el.scrollTop = el.scrollHeight;
 }
 
-// --- Dynamic Engine Loader ---
 async function loadScript(url) {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
@@ -102,35 +103,38 @@ async function loadScript(url) {
   });
 }
 
-async function loadEngine() {
-  document.getElementById('loader-msg').textContent = "Loading Core Engine...";
+async function initEngine() {
   try {
-    // Load Ethers first
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js");
     log("Ethers Loaded");
 
-    // Load WalletConnect Core
     await loadScript("https://unpkg.com/@walletconnect/core@2.10.3/dist/index.umd.js");
-    log("Core Engine Loaded");
+    log("Core Script Loaded");
 
-    // Load WalletConnect Web3Wallet
     await loadScript("https://unpkg.com/@walletconnect/web3wallet@1.9.3/dist/index.umd.js");
-    log("Web3Wallet Loaded");
+    log("Web3Wallet Script Loaded");
 
-    if (window.WalletConnectCore && window.WalletConnectWeb3Wallet) {
+    // --- SMART DETECTION LOGIC ---
+    // Some browsers put these in different places. We check all common spots.
+    CoreClass = (window.WalletConnectCore && window.WalletConnectCore.Core) || (window.Core && window.Core.Core);
+    Web3WalletClass = (window.WalletConnectWeb3Wallet && window.WalletConnectWeb3Wallet.Web3Wallet) || window.Web3Wallet;
+
+    if (CoreClass && Web3WalletClass) {
       document.getElementById('loader-msg').textContent = "Engine Ready ✓";
       document.getElementById('loader-msg').style.color = "var(--accent)";
-      log("Bridge Engine fully initialized!", "var(--accent)");
+      log("Bridge Engine Ready!", "var(--accent)");
+    } else {
+      // Diagnostic Log
+      log("Diagnostic: Core found? " + !!CoreClass);
+      log("Diagnostic: Wallet found? " + !!Web3WalletClass);
+      document.getElementById('loader-msg').textContent = "Engine Detection Failed";
     }
   } catch (e) {
     log("Load Error: " + e.message, "var(--danger)");
-    document.getElementById('loader-msg').textContent = "Engine Load Failed";
-    document.getElementById('btn-force-load').style.display = "block";
   }
 }
 
-// Start loading immediately
-loadEngine();
+initEngine();
 
 // --- Wallet Discovery ---
 window.addEventListener("eip6963:announceProvider", (event) => {
@@ -165,10 +169,9 @@ async function selectWallet(index) {
   } catch (e) { log("Connection failed: " + e.message, "var(--danger)"); }
 }
 
-// --- Bridge Logic ---
 async function startBridge() {
-  if (!window.WalletConnectCore || !window.WalletConnectWeb3Wallet) {
-    return log("Engine not ready. Try 'Force Reload'.", "var(--danger)");
+  if (!CoreClass || !Web3WalletClass) {
+    return log("Engine not detected. Please refresh.", "var(--danger)");
   }
 
   const uri = document.getElementById('wc-uri').value.trim();
@@ -176,8 +179,8 @@ async function startBridge() {
 
   log("Starting Relay...");
   try {
-    const core = new window.WalletConnectCore.Core({ projectId: 'a0b855ceefbc43cca5d8e13bdc63a0ac' });
-    wcClient = await window.WalletConnectWeb3Wallet.Web3Wallet.init({
+    const core = new CoreClass({ projectId: 'a0b855ceefbc43cca5d8e13bdc63a0ac' });
+    wcClient = await Web3WalletClass.init({
       core,
       metadata: { name: 'Spell Bridge', description: 'BNB Relay', url: window.location.origin, icons: [] }
     });
