@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spell Bridge Pro - BNB</title>
 
-<!-- 1. Buffer Polyfill (CRITICAL for WalletConnect) -->
+<!-- 1. ESSENTIAL POLYFILLS (Must be first) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/buffer/6.0.3/buffer.min.js"></script>
-<script>window.Buffer = window.Buffer || buffer.Buffer;</script>
-
-<!-- 2. Stable Web3 Libraries -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@walletconnect/core@2.10.3/dist/index.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3wallet@1.9.3/dist/index.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/events/3.3.0/events.min.js"></script>
+<script>
+    window.Buffer = window.Buffer || buffer.Buffer;
+    window.process = { env: { NODE_ENV: 'production' } };
+    window.EventEmitter = EventEmitter;
+</script>
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
@@ -25,21 +25,16 @@
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
   .card-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: block; }
   
-  .wallet-item { 
-    display: flex; align-items: center; gap: 12px; padding: 12px; 
-    background: rgba(255,255,255,0.03); border: 1px solid var(--border); 
-    border-radius: 10px; cursor: pointer; transition: 0.2s; margin-bottom: 8px;
-  }
-  .wallet-item:hover { border-color: var(--accent); }
-  .wallet-item img { width: 28px; height: 28px; border-radius: 6px; }
+  .wallet-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; margin-bottom: 8px; }
   .wallet-item.selected { border-color: var(--accent); background: rgba(0,255,136,0.1); }
+  .wallet-item img { width: 28px; height: 28px; border-radius: 6px; }
   
   button { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-weight: bold; cursor: pointer; margin-top: 10px; }
   button:disabled { opacity: 0.3; cursor: not-allowed; }
   textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 80px; margin-top: 10px; resize: none; }
-  .log { font-size: 10px; color: var(--muted); max-height: 150px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; line-height: 1.4; }
+  .log { font-size: 10px; color: var(--muted); max-height: 200px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; line-height: 1.4; }
   .pending-box { display: none; background: rgba(255,68,102,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; margin-top: 15px; }
-  .retry-btn { font-size: 10px; padding: 5px; border: 1px solid var(--muted); color: var(--muted); width: auto; margin: 0 auto; display: block; }
+  .loader-status { font-size: 10px; text-align: center; color: var(--accent2); margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -50,11 +45,11 @@
     <p style="font-size: 10px; color: var(--muted);">BNB Chain Optimized Relay</p>
   </div>
 
+  <div id="loader-msg" class="loader-status">Initializing Engine...</div>
+
   <div class="card">
     <span class="card-label">Step 1: Select Spell Wallet</span>
-    <div id="wallet-list">
-      <div style="font-size: 12px; color: var(--muted);">Scanning for extensions...</div>
-    </div>
+    <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Scanning...</div></div>
     <div id="connection-status" style="font-size: 12px; color: var(--accent); margin-top: 8px;"></div>
   </div>
 
@@ -62,7 +57,7 @@
     <span class="card-label">Step 2: Connect dApp Link</span>
     <textarea id="wc-uri" placeholder="Paste wc: link here..."></textarea>
     <button id="btn-pair" onclick="startBridge()" disabled>Initialize Bridge</button>
-    <button id="btn-retry-lib" class="retry-btn" onclick="checkLibs()">Reload Libraries</button>
+    <button id="btn-force-load" style="font-size: 10px; border-color: var(--muted); color: var(--muted); display:none;" onclick="loadEngine()">Force Reload Engine</button>
   </div>
 
   <div id="pending-box" class="pending-box">
@@ -96,29 +91,48 @@ function log(msg, color = '') {
   el.scrollTop = el.scrollHeight;
 }
 
-// --- Library Health Check ---
-function checkLibs() {
-  const core = !!window.WalletConnectCore;
-  const wallet = !!window.WalletConnectWeb3Wallet;
-  
-  if (core && wallet) {
-    log("Bridge Engine: Ready", "var(--accent)");
-    document.getElementById('btn-retry-lib').style.display = 'none';
-    return true;
-  } else {
-    log("Bridge Engine: Waiting for libraries...", "orange");
-    if (!core) log("Missing: Core Library", "var(--danger)");
-    if (!wallet) log("Missing: Web3Wallet Library", "var(--danger)");
-    return false;
+// --- Dynamic Engine Loader ---
+async function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+async function loadEngine() {
+  document.getElementById('loader-msg').textContent = "Loading Core Engine...";
+  try {
+    // Load Ethers first
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js");
+    log("Ethers Loaded");
+
+    // Load WalletConnect Core
+    await loadScript("https://unpkg.com/@walletconnect/core@2.10.3/dist/index.umd.js");
+    log("Core Engine Loaded");
+
+    // Load WalletConnect Web3Wallet
+    await loadScript("https://unpkg.com/@walletconnect/web3wallet@1.9.3/dist/index.umd.js");
+    log("Web3Wallet Loaded");
+
+    if (window.WalletConnectCore && window.WalletConnectWeb3Wallet) {
+      document.getElementById('loader-msg').textContent = "Engine Ready ✓";
+      document.getElementById('loader-msg').style.color = "var(--accent)";
+      log("Bridge Engine fully initialized!", "var(--accent)");
+    }
+  } catch (e) {
+    log("Load Error: " + e.message, "var(--danger)");
+    document.getElementById('loader-msg').textContent = "Engine Load Failed";
+    document.getElementById('btn-force-load').style.display = "block";
   }
 }
 
-// Auto-check every 2 seconds
-const libInterval = setInterval(() => {
-  if (checkLibs()) clearInterval(libInterval);
-}, 2000);
+// Start loading immediately
+loadEngine();
 
-// --- Discovery ---
+// --- Wallet Discovery ---
 window.addEventListener("eip6963:announceProvider", (event) => {
   const info = event.detail.info;
   if (providers.find(p => p.info.uuid === info.uuid)) return;
@@ -145,7 +159,7 @@ async function selectWallet(index) {
   try {
     const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
     account = accounts[0];
-    document.getElementById('connection-status').textContent = `Connected: ${account.slice(0,10)}...`;
+    document.getElementById('connection-status').textContent = `Connected: ${account.slice(0,12)}...`;
     document.getElementById('btn-pair').disabled = false;
     log("Spell Wallet Linked", "var(--accent)");
   } catch (e) { log("Connection failed: " + e.message, "var(--danger)"); }
@@ -153,9 +167,8 @@ async function selectWallet(index) {
 
 // --- Bridge Logic ---
 async function startBridge() {
-  if (!checkLibs()) {
-    log("Cannot start: Libraries not loaded yet.", "var(--danger)");
-    return;
+  if (!window.WalletConnectCore || !window.WalletConnectWeb3Wallet) {
+    return log("Engine not ready. Try 'Force Reload'.", "var(--danger)");
   }
 
   const uri = document.getElementById('wc-uri').value.trim();
@@ -163,11 +176,8 @@ async function startBridge() {
 
   log("Starting Relay...");
   try {
-    const Core = window.WalletConnectCore.Core;
-    const Web3Wallet = window.WalletConnectWeb3Wallet.Web3Wallet;
-
-    const core = new Core({ projectId: 'a0b855ceefbc43cca5d8e13bdc63a0ac' });
-    wcClient = await Web3Wallet.init({
+    const core = new window.WalletConnectCore.Core({ projectId: 'a0b855ceefbc43cca5d8e13bdc63a0ac' });
+    wcClient = await window.WalletConnectWeb3Wallet.Web3Wallet.init({
       core,
       metadata: { name: 'Spell Bridge', description: 'BNB Relay', url: window.location.origin, icons: [] }
     });
