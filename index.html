@@ -216,27 +216,29 @@
   async function approveRequest() {
     if (!pendingRequest) return;
     try {
-      log("Sanitizing request for Spell...");
+      log("Refining transaction for MPC Relay...");
+      
       const method = pendingRequest.params.request.method;
       let finalParams = pendingRequest.params.request.params;
       
-      // If it's a transaction, we clean it to prevent "Invalid Parameter" errors
       if (method === 'eth_sendTransaction' || method === 'eth_signTransaction') {
         const tx = finalParams[0];
-        // We create a "Clean" transaction object
-        // We intentionally REMOVE gas, gasPrice, maxFee, and nonce
-        // This allows the Spell extension to calculate them itself
+        
+        // Ensure values are properly formatted Hex strings
         const cleanTx = {
           from: account.toLowerCase(),
           to: tx.to.toLowerCase(),
           data: tx.data || "0x",
-          value: tx.value || "0x0"
+          // Convert value to a clean hex '0x0' if it's missing or 0
+          value: (tx.value === "0" || !tx.value) ? "0x0" : tx.value
         };
         
-        // Add chainId if present
-        if (tx.chainId) cleanTx.chainId = tx.chainId;
+        // Spell and other MPC wallets often require the ChainId to be explicit
+        // 56 is BNB Smart Chain. In hex, it is 0x38.
+        cleanTx.chainId = 56; 
+        
         finalParams = [cleanTx];
-        log("Forwarding Clean TX to Spell...", "white");
+        log(`Forwarding to Spell (Chain 56)...`, "white");
       }
       
       const result = await selectedProvider.request({
@@ -249,16 +251,25 @@
         response: { id: pendingRequest.id, jsonrpc: '2.0', result }
       });
       
-      log("SUCCESS: Transaction Broadcast!", "var(--accent)");
+      log("SUCCESS: Transaction signed!", "var(--accent)");
     } catch (e) { 
-      console.error("Spell Error:", e);
-      log("Extension Denied: " + e.message, "var(--danger)"); 
+      console.error("Spell Full Error:", e);
       
+      // Check if it's a gas/balance issue
+      let errorMsg = e.message || "Unknown Internal Error";
+      if (errorMsg.includes("Internal JSON-RPC error")) {
+        errorMsg = "Internal Error (Likely Contract Revert or No Gas)";
+      }
+
+      log("Extension Denied: " + errorMsg, "var(--danger)"); 
+      log("Hint: Do you have at least 0.005 BNB in this wallet?", "orange");
+
       await wcClient.respondSessionRequest({
         topic: pendingRequest.topic,
-        response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: e.message } }
+        response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: errorMsg } }
       });
     }
+    
     document.getElementById('pending-box').style.display = 'none';
     pendingRequest = null;
   }
