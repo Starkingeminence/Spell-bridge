@@ -5,10 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spell Bridge Pro - BNB</title>
 
-<!-- Using Unpkg for better compatibility with mobile browsers -->
+<!-- 1. Buffer Polyfill (CRITICAL for WalletConnect) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/buffer/6.0.3/buffer.min.js"></script>
+<script>window.Buffer = window.Buffer || buffer.Buffer;</script>
+
+<!-- 2. Stable Web3 Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-<script src="https://unpkg.com/@walletconnect/core@2.17.3/dist/index.umd.js"></script>
-<script src="https://unpkg.com/@walletconnect/web3wallet@1.13.2/dist/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/core@2.10.3/dist/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3wallet@1.9.3/dist/index.umd.js"></script>
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
@@ -35,6 +39,7 @@
   textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 80px; margin-top: 10px; resize: none; }
   .log { font-size: 10px; color: var(--muted); max-height: 150px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; line-height: 1.4; }
   .pending-box { display: none; background: rgba(255,68,102,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; margin-top: 15px; }
+  .retry-btn { font-size: 10px; padding: 5px; border: 1px solid var(--muted); color: var(--muted); width: auto; margin: 0 auto; display: block; }
 </style>
 </head>
 <body>
@@ -57,6 +62,7 @@
     <span class="card-label">Step 2: Connect dApp Link</span>
     <textarea id="wc-uri" placeholder="Paste wc: link here..."></textarea>
     <button id="btn-pair" onclick="startBridge()" disabled>Initialize Bridge</button>
+    <button id="btn-retry-lib" class="retry-btn" onclick="checkLibs()">Reload Libraries</button>
   </div>
 
   <div id="pending-box" class="pending-box">
@@ -90,14 +96,27 @@ function log(msg, color = '') {
   el.scrollTop = el.scrollHeight;
 }
 
-// Check if libraries loaded correctly
-window.onload = () => {
-  if (window.WalletConnectCore && window.WalletConnectWeb3Wallet) {
+// --- Library Health Check ---
+function checkLibs() {
+  const core = !!window.WalletConnectCore;
+  const wallet = !!window.WalletConnectWeb3Wallet;
+  
+  if (core && wallet) {
     log("Bridge Engine: Ready", "var(--accent)");
+    document.getElementById('btn-retry-lib').style.display = 'none';
+    return true;
   } else {
-    log("Bridge Engine Error: Libraries failed to load. Please refresh.", "var(--danger)");
+    log("Bridge Engine: Waiting for libraries...", "orange");
+    if (!core) log("Missing: Core Library", "var(--danger)");
+    if (!wallet) log("Missing: Web3Wallet Library", "var(--danger)");
+    return false;
   }
-};
+}
+
+// Auto-check every 2 seconds
+const libInterval = setInterval(() => {
+  if (checkLibs()) clearInterval(libInterval);
+}, 2000);
 
 // --- Discovery ---
 window.addEventListener("eip6963:announceProvider", (event) => {
@@ -126,7 +145,7 @@ async function selectWallet(index) {
   try {
     const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
     account = accounts[0];
-    document.getElementById('connection-status').textContent = `Connected: ${account}`;
+    document.getElementById('connection-status').textContent = `Connected: ${account.slice(0,10)}...`;
     document.getElementById('btn-pair').disabled = false;
     log("Spell Wallet Linked", "var(--accent)");
   } catch (e) { log("Connection failed: " + e.message, "var(--danger)"); }
@@ -134,18 +153,16 @@ async function selectWallet(index) {
 
 // --- Bridge Logic ---
 async function startBridge() {
-  const uri = document.getElementById('wc-uri').value.trim();
-  if (!uri) return log("Paste a link first!", "orange");
-
-  // Safety check for the "Core" error
-  if (!window.WalletConnectCore || !window.WalletConnectWeb3Wallet) {
-    log("Critical: WalletConnect libraries not found. Refreshing page...", "var(--danger)");
+  if (!checkLibs()) {
+    log("Cannot start: Libraries not loaded yet.", "var(--danger)");
     return;
   }
 
+  const uri = document.getElementById('wc-uri').value.trim();
+  if (!uri) return log("Paste a link first!", "orange");
+
   log("Starting Relay...");
   try {
-    // Use the correct UMD access pattern
     const Core = window.WalletConnectCore.Core;
     const Web3Wallet = window.WalletConnectWeb3Wallet.Web3Wallet;
 
@@ -181,7 +198,6 @@ async function startBridge() {
     log("Pairing signal sent...");
   } catch (err) {
     log("Bridge Error: " + err.message, "var(--danger)");
-    console.error(err);
   }
 }
 
