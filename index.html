@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spell Bridge Pro - BNB</title>
-
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
   :root { --bg: #0a0a0f; --surface: #111118; --border: #1e1e2e; --accent: #00ff88; --accent2: #0088ff; --text: #e0e0f0; --muted: #555570; --danger: #ff4466; }
@@ -15,17 +14,14 @@
   .header h1 { font-family: 'Syne', sans-serif; font-size: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
   .card-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: block; }
-  
   .wallet-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; margin-bottom: 8px; }
   .wallet-item.selected { border-color: var(--accent); background: rgba(0,255,136,0.1); }
   .wallet-item img { width: 28px; height: 28px; border-radius: 6px; }
-  
   button { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-weight: bold; cursor: pointer; margin-top: 10px; }
   button:disabled { opacity: 0.3; cursor: not-allowed; }
   textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 80px; margin-top: 10px; resize: none; }
   .log { font-size: 10px; color: var(--muted); max-height: 200px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; line-height: 1.4; }
   .pending-box { display: none; background: rgba(255,68,102,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; margin-top: 15px; }
-  .loader-status { font-size: 10px; text-align: center; color: var(--accent2); margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -36,17 +32,15 @@
     <p style="font-size: 10px; color: var(--muted);">BNB Chain Optimized Relay</p>
   </div>
 
-  <div id="loader-msg" class="loader-status">Loading Engine...</div>
-
   <div class="card">
     <span class="card-label">Step 1: Select Spell Wallet</span>
-    <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Scanning for Spell...</div></div>
+    <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Scanning...</div></div>
     <div id="connection-status" style="font-size: 12px; color: var(--accent); margin-top: 8px;"></div>
   </div>
 
   <div class="card">
     <span class="card-label">Step 2: Connect dApp Link</span>
-    <textarea id="wc-uri" placeholder="Paste wc: link here..."></textarea>
+    <textarea id="wc-uri" placeholder="Paste fresh wc: link here..."></textarea>
     <button id="btn-pair" disabled>Initialize Bridge</button>
   </div>
 
@@ -65,10 +59,10 @@
   </div>
 </div>
 
-<!-- Using Module Script to handle WalletConnect v2 -->
 <script type="module">
   import { Core } from "https://esm.sh/@walletconnect/core@2.10.3";
   import { Web3Wallet } from "https://esm.sh/@walletconnect/web3wallet@1.9.3";
+  import { buildApprovedNamespaces } from "https://esm.sh/@walletconnect/utils@2.10.3";
 
   let selectedProvider = null;
   let account = null;
@@ -85,13 +79,9 @@
     el.scrollTop = el.scrollHeight;
   }
 
-  // Initialize Engine
-  log("Engine: Loading Modules...");
-  document.getElementById('loader-msg').textContent = "Engine Ready ✓";
-  document.getElementById('loader-msg').style.color = "var(--accent)";
   log("Bridge Engine Ready!", "var(--accent)");
 
-  // --- Wallet Discovery ---
+  // --- Discovery ---
   window.addEventListener("eip6963:announceProvider", (event) => {
     const info = event.detail.info;
     if (providers.find(p => p.info.uuid === info.uuid)) return;
@@ -129,27 +119,46 @@
     const uri = document.getElementById('wc-uri').value.trim();
     if (!uri) return log("Paste a link first!", "orange");
 
-    log("Starting Relay...");
+    log("Connecting to Relay...");
     try {
       const core = new Core({ projectId: 'a0b855ceefbc43cca5d8e13bdc63a0ac' });
       wcClient = await Web3Wallet.init({
         core,
-        metadata: { name: 'Spell Bridge', description: 'BNB Relay', url: window.location.origin, icons: [] }
+        metadata: { 
+            name: 'Spell Bridge', 
+            description: 'Blockchain Relay', 
+            url: 'https://spellwallet.app', // Using official URL to avoid dApp blocks
+            icons: ['https://spellwallet.app/logo.png'] 
+        }
       });
 
+      // Handle Session Proposal
       wcClient.on('session_proposal', async (proposal) => {
-        log("Proposal received. Handshaking...");
-        const namespaces = {
-          eip155: {
-            accounts: [`eip155:56:${account}`, `eip155:1:${account}`],
-            methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'eth_sign'],
-            events: ['accountsChanged', 'chainChanged'],
-            chains: ['eip155:56', 'eip155:1']
-          }
-        };
-        await wcClient.approveSession({ id: proposal.id, namespaces });
-        log("BRIDGE ACTIVE", "var(--accent)");
-        document.getElementById('btn-pair').textContent = "✓ Connected";
+        log("DApp Proposal Received!", "var(--accent)");
+        try {
+          // This helper automatically builds the response based on what the dApp asked for
+          const approvedNamespaces = buildApprovedNamespaces({
+            proposal,
+            supportedNamespaces: {
+              eip155: {
+                chains: ['eip155:1', 'eip155:56', 'eip155:137'], // ETH, BNB, Polygon
+                methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'eth_sign', 'eth_accounts'],
+                events: ['accountsChanged', 'chainChanged'],
+                accounts: [
+                    `eip155:1:${account}`, 
+                    `eip155:56:${account}`, 
+                    `eip155:137:${account}`
+                ]
+              }
+            }
+          });
+
+          await wcClient.approveSession({ id: proposal.id, namespaces: approvedNamespaces });
+          log("BRIDGE ACTIVE: DApp connected", "var(--accent)");
+          document.getElementById('btn-pair').textContent = "✓ Connected";
+        } catch (e) {
+          log("Handshake Failed: " + e.message, "var(--danger)");
+        }
       });
 
       wcClient.on('session_request', (event) => {
@@ -160,7 +169,9 @@
       });
 
       await wcClient.core.pairing.pair({ uri });
-      log("Pairing signal sent...");
+      log("Pairing signal sent. Waiting for dApp response...");
+      log("Tip: If nothing happens in 10s, the link is likely expired.");
+
     } catch (err) {
       log("Bridge Error: " + err.message, "var(--danger)");
     }
@@ -169,6 +180,7 @@
   async function approveRequest() {
     if (!pendingRequest) return;
     try {
+      log("Forwarding to Spell...");
       const result = await selectedProvider.request({
         method: pendingRequest.params.request.method,
         params: pendingRequest.params.request.params
@@ -191,11 +203,9 @@
     document.getElementById('pending-box').style.display = 'none';
   }
 
-  // Attach functions to buttons (since modules have their own scope)
   document.getElementById('btn-pair').onclick = startBridge;
   document.getElementById('btn-approve').onclick = approveRequest;
   document.getElementById('btn-reject').onclick = rejectRequest;
-
 </script>
 </body>
 </html>
