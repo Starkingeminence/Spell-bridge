@@ -84,7 +84,7 @@
     el.scrollTop = el.scrollHeight;
   }
 
-  // --- Discovery (Find Spell Extension) ---
+  // --- Discovery ---
   window.addEventListener("eip6963:announceProvider", (event) => {
     const info = event.detail.info;
     if (providers.find(p => p.info.uuid === info.uuid)) return;
@@ -117,7 +117,7 @@
     } catch (e) { log("Extension Connection Refused", "var(--danger)"); }
   }
 
-  // --- WalletConnect Logic ---
+  // --- Robust Handshake Logic ---
   async function initWC() {
     try {
       const core = new Core({ projectId: PROJECT_ID });
@@ -134,20 +134,36 @@
       document.getElementById('relay-msg').textContent = "Relay: Ready (Cloud Connected)";
       document.getElementById('relay-msg').style.color = "var(--accent)";
 
-      // Handle Session Proposal (When dApp wants to connect)
       wcClient.on('session_proposal', async (proposal) => {
         log("DApp Connection Requested...", "yellow");
         
         try {
-          // Dynamic chain approval based on what the dApp wants
+          // Robustly identify which chains the dApp wants (checking required AND optional)
+          const requiredRes = proposal.params.requiredNamespaces?.eip155?.chains || [];
+          const optionalRes = proposal.params.optionalNamespaces?.eip155?.chains || [];
+          
+          // Merge them and add BNB (56) and ETH (1) as fallbacks if the list is empty
+          let requestedChains = [...new Set([...requiredRes, ...optionalRes])];
+          if (requestedChains.length === 0) requestedChains = ['eip155:56', 'eip155:1'];
+
+          log(`Approving Chains: ${requestedChains.join(', ')}`, "#888");
+
           const approvedNamespaces = buildApprovedNamespaces({
             proposal,
             supportedNamespaces: {
               eip155: {
-                chains: proposal.params.requiredNamespaces.eip155?.chains || ['eip155:56'],
-                methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'eth_sign'],
+                chains: requestedChains,
+                methods: [
+                    'eth_sendTransaction', 
+                    'personal_sign', 
+                    'eth_signTypedData', 
+                    'eth_signTypedData_v4', 
+                    'eth_sign', 
+                    'wallet_switchEthereumChain',
+                    'wallet_addEthereumChain'
+                ],
                 events: ['accountsChanged', 'chainChanged'],
-                accounts: (proposal.params.requiredNamespaces.eip155?.chains || ['eip155:56']).map(c => `${c}:${account}`)
+                accounts: requestedChains.map(c => `${c}:${account}`)
               }
             }
           });
@@ -156,19 +172,17 @@
           log("BRIDGE ACTIVE: dApp is now connected", "var(--accent)");
           document.getElementById('btn-pair').textContent = "✓ Bridge Established";
         } catch (e) {
+          console.error(e);
           log("Handshake Error: " + e.message, "var(--danger)");
         }
       });
 
-      // Handle Session Requests (Transactions/Signing)
       wcClient.on('session_request', (event) => {
         pendingRequest = event;
         const { method } = event.params.request;
         document.getElementById('req-method').textContent = method;
         document.getElementById('pending-box').style.display = 'block';
-        log(`Intercepted: ${method}`, "white");
-        
-        // Auto-focus window if request comes in
+        log(`Incoming Request: ${method}`, "white");
         window.focus();
       });
 
@@ -193,7 +207,9 @@
   async function approveRequest() {
     if (!pendingRequest) return;
     try {
-      log("Forwarding request to Spell Extension...");
+      log("Forwarding to Spell Extension...");
+      
+      // Standardize params for the extension
       const result = await selectedProvider.request({
         method: pendingRequest.params.request.method,
         params: pendingRequest.params.request.params
@@ -226,9 +242,7 @@
     pendingRequest = null;
   }
 
-  // Initialize on load
   initWC();
-
   document.getElementById('btn-pair').onclick = startBridge;
   document.getElementById('btn-approve').onclick = approveRequest;
   document.getElementById('btn-reject').onclick = rejectRequest;
