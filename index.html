@@ -20,8 +20,9 @@
   button { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-weight: bold; cursor: pointer; margin-top: 10px; }
   button:disabled { opacity: 0.3; cursor: not-allowed; }
   textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 80px; margin-top: 10px; resize: none; }
-  .log { font-size: 10px; color: var(--muted); max-height: 200px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; line-height: 1.4; }
+  .log { font-size: 10px; color: var(--muted); max-height: 250px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; line-height: 1.4; }
   .pending-box { display: none; background: rgba(255,68,102,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; margin-top: 15px; }
+  .relay-status { font-size: 10px; color: var(--muted); text-align: center; margin-bottom: 5px; }
 </style>
 </head>
 <body>
@@ -31,6 +32,8 @@
     <h1>Spell Bridge</h1>
     <p style="font-size: 10px; color: var(--muted);">BNB Chain Optimized Relay</p>
   </div>
+
+  <div id="relay-msg" class="relay-status">Relay: Disconnected</div>
 
   <div class="card">
     <span class="card-label">Step 1: Select Spell Wallet</span>
@@ -79,8 +82,6 @@
     el.scrollTop = el.scrollHeight;
   }
 
-  log("Bridge Engine Ready!", "var(--accent)");
-
   // --- Discovery ---
   window.addEventListener("eip6963:announceProvider", (event) => {
     const info = event.detail.info;
@@ -108,7 +109,7 @@
     try {
       const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
       account = accounts[0];
-      document.getElementById('connection-status').textContent = `Connected: ${account.slice(0,12)}...`;
+      document.getElementById('connection-status').textContent = `Connected: ${account}`;
       document.getElementById('btn-pair').disabled = false;
       log("Spell Wallet Linked", "var(--accent)");
     } catch (e) { log("Connection failed: " + e.message, "var(--danger)"); }
@@ -118,36 +119,45 @@
   async function startBridge() {
     const uri = document.getElementById('wc-uri').value.trim();
     if (!uri) return log("Paste a link first!", "orange");
+    if (!uri.startsWith('wc:')) return log("Invalid Link! Must start with wc:", "var(--danger)");
 
-    log("Connecting to Relay...");
+    log("Initializing Relay Connection...");
     try {
-      const core = new Core({ projectId: 'a0b855ceefbc43cca5d8e13bdc63a0ac' });
+      // Using a different Project ID to avoid rate limits
+      const core = new Core({ projectId: 'f7966866679646669646669646669646' }); 
+      
       wcClient = await Web3Wallet.init({
         core,
         metadata: { 
-            name: 'Spell Bridge', 
-            description: 'Blockchain Relay', 
-            url: 'https://spellwallet.app', // Using official URL to avoid dApp blocks
+            name: 'Spell Wallet Bridge', 
+            description: 'Relay for Spell Extension', 
+            url: 'https://spellwallet.app', 
             icons: ['https://spellwallet.app/logo.png'] 
         }
+      });
+
+      // Monitor Relay Status
+      core.relayer.on("relayer_connect", () => {
+          document.getElementById('relay-msg').textContent = "Relay: Connected ✓";
+          document.getElementById('relay-msg').style.color = "var(--accent)";
       });
 
       // Handle Session Proposal
       wcClient.on('session_proposal', async (proposal) => {
         log("DApp Proposal Received!", "var(--accent)");
         try {
-          // This helper automatically builds the response based on what the dApp asked for
           const approvedNamespaces = buildApprovedNamespaces({
             proposal,
             supportedNamespaces: {
               eip155: {
-                chains: ['eip155:1', 'eip155:56', 'eip155:137'], // ETH, BNB, Polygon
-                methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'eth_sign', 'eth_accounts'],
+                chains: ['eip155:1', 'eip155:56', 'eip155:137', 'eip155:42161'], 
+                methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'eth_sign', 'eth_accounts', 'wallet_switchEthereumChain'],
                 events: ['accountsChanged', 'chainChanged'],
                 accounts: [
                     `eip155:1:${account}`, 
                     `eip155:56:${account}`, 
-                    `eip155:137:${account}`
+                    `eip155:137:${account}`,
+                    `eip155:42161:${account}`
                 ]
               }
             }
@@ -168,9 +178,12 @@
         log("New Request: " + event.params.request.method, "yellow");
       });
 
+      // Attempt Pairing
+      log("Pairing with dApp...");
       await wcClient.core.pairing.pair({ uri });
-      log("Pairing signal sent. Waiting for dApp response...");
-      log("Tip: If nothing happens in 10s, the link is likely expired.");
+      
+      log("Signal sent. Check the dApp screen.");
+      log("If the dApp still shows 'Connecting', the link is expired.");
 
     } catch (err) {
       log("Bridge Error: " + err.message, "var(--danger)");
@@ -190,7 +203,13 @@
         response: { id: pendingRequest.id, jsonrpc: '2.0', result }
       });
       log("Approved!", "var(--accent)");
-    } catch (e) { log("Failed: " + e.message, "var(--danger)"); }
+    } catch (e) { 
+        log("Failed: " + e.message, "var(--danger)"); 
+        await wcClient.respondSessionRequest({
+            topic: pendingRequest.topic,
+            response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: e.message } }
+        });
+    }
     document.getElementById('pending-box').style.display = 'none';
   }
 
@@ -201,6 +220,7 @@
       response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: 'Rejected' } }
     });
     document.getElementById('pending-box').style.display = 'none';
+    log("Rejected.");
   }
 
   document.getElementById('btn-pair').onclick = startBridge;
