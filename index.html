@@ -138,45 +138,56 @@
         log("DApp Connection Requested...", "yellow");
         
         try {
-          // Robustly identify which chains the dApp wants (checking required AND optional)
-          const requiredRes = proposal.params.requiredNamespaces?.eip155?.chains || [];
-          const optionalRes = proposal.params.optionalNamespaces?.eip155?.chains || [];
+          // 1. Manually identify which chains the dApp is interested in
+          const reqNamespaces = proposal.params.requiredNamespaces || {};
+          const optNamespaces = proposal.params.optionalNamespaces || {};
           
-          // Merge them and add BNB (56) and ETH (1) as fallbacks if the list is empty
-          let requestedChains = [...new Set([...requiredRes, ...optionalRes])];
-          if (requestedChains.length === 0) requestedChains = ['eip155:56', 'eip155:1'];
+          // Get all eip155 chains mentioned in both required and optional
+          const reqChains = reqNamespaces.eip155?.chains || [];
+          const optChains = optNamespaces.eip155?.chains || [];
+          let allChains = [...new Set([...reqChains, ...optChains])];
+          
+          // Fallback: If they didn't specify any chains, default to BNB (56)
+          if (allChains.length === 0) {
+              allChains = ['eip155:56'];
+          }
 
-          log(`Approving Chains: ${requestedChains.join(', ')}`, "#888");
+          log(`Approval List: ${allChains.join(', ')}`, "#888");
 
-          const approvedNamespaces = buildApprovedNamespaces({
-            proposal,
-            supportedNamespaces: {
-              eip155: {
-                chains: requestedChains,
-                methods: [
-                    'eth_sendTransaction', 
-                    'personal_sign', 
-                    'eth_signTypedData', 
-                    'eth_signTypedData_v4', 
-                    'eth_sign', 
-                    'wallet_switchEthereumChain',
-                    'wallet_addEthereumChain'
-                ],
-                events: ['accountsChanged', 'chainChanged'],
-                accounts: requestedChains.map(c => `${c}:${account}`)
-              }
-            }
+          // 2. MANUALLY build the namespaces object (Bypassing the buggy utility)
+          const namespaces = {};
+          
+          // We only care about eip155 (EVM chains) for the Spell extension
+          namespaces.eip155 = {
+            accounts: allChains.map(chain => `${chain}:${account}`),
+            methods: [
+              'eth_sendTransaction', 
+              'eth_signTransaction', 
+              'personal_sign', 
+              'eth_signTypedData', 
+              'eth_signTypedData_v4', 
+              'eth_sign', 
+              'wallet_switchEthereumChain',
+              'wallet_addEthereumChain'
+            ],
+            events: ['accountsChanged', 'chainChanged'],
+            chains: allChains
+          };
+
+          // 3. Approve the session with our custom object
+          await wcClient.approveSession({ 
+            id: proposal.id, 
+            namespaces: namespaces 
           });
 
-          await wcClient.approveSession({ id: proposal.id, namespaces: approvedNamespaces });
-          log("BRIDGE ACTIVE: dApp is now connected", "var(--accent)");
+          log("BRIDGE ACTIVE: Connection successful", "var(--accent)");
           document.getElementById('btn-pair').textContent = "✓ Bridge Established";
         } catch (e) {
-          console.error(e);
+          console.error("Handshake Crash Detail:", e);
           log("Handshake Error: " + e.message, "var(--danger)");
         }
       });
-
+      
       wcClient.on('session_request', (event) => {
         pendingRequest = event;
         const { method } = event.params.request;
