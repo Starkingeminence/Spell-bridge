@@ -216,30 +216,53 @@
   async function approveRequest() {
     if (!pendingRequest) return;
     try {
-      log("Forwarding to Spell Extension...");
+      log("Sanitizing request for Spell...");
+      const method = pendingRequest.params.request.method;
+      let finalParams = pendingRequest.params.request.params;
       
-      // Standardize params for the extension
+      // If it's a transaction, we clean it to prevent "Invalid Parameter" errors
+      if (method === 'eth_sendTransaction' || method === 'eth_signTransaction') {
+        const tx = finalParams[0];
+        // We create a "Clean" transaction object
+        // We intentionally REMOVE gas, gasPrice, maxFee, and nonce
+        // This allows the Spell extension to calculate them itself
+        const cleanTx = {
+          from: account.toLowerCase(),
+          to: tx.to.toLowerCase(),
+          data: tx.data || "0x",
+          value: tx.value || "0x0"
+        };
+        
+        // Add chainId if present
+        if (tx.chainId) cleanTx.chainId = tx.chainId;
+        finalParams = [cleanTx];
+        log("Forwarding Clean TX to Spell...", "white");
+      }
+      
       const result = await selectedProvider.request({
-        method: pendingRequest.params.request.method,
-        params: pendingRequest.params.request.params
+        method: method,
+        params: finalParams
       });
       
       await wcClient.respondSessionRequest({
         topic: pendingRequest.topic,
         response: { id: pendingRequest.id, jsonrpc: '2.0', result }
       });
-      log("Success: Response sent to dApp", "var(--accent)");
+      
+      log("SUCCESS: Transaction Broadcast!", "var(--accent)");
     } catch (e) { 
-        log("Extension Denied: " + e.message, "var(--danger)"); 
-        await wcClient.respondSessionRequest({
-            topic: pendingRequest.topic,
-            response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: e.message } }
-        });
+      console.error("Spell Error:", e);
+      log("Extension Denied: " + e.message, "var(--danger)"); 
+      
+      await wcClient.respondSessionRequest({
+        topic: pendingRequest.topic,
+        response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: e.message } }
+      });
     }
     document.getElementById('pending-box').style.display = 'none';
     pendingRequest = null;
   }
-
+  
   async function rejectRequest() {
     if (!pendingRequest) return;
     await wcClient.respondSessionRequest({
