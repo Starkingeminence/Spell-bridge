@@ -3,8 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Spell Bridge Pro</title>
+<title>Spell Bridge Pro - BNB Edition</title>
+<!-- Pre-loading libraries for stability -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/core@2.17.3/dist/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3wallet@1.13.2/dist/index.umd.js"></script>
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
   :root { --bg: #0a0a0f; --surface: #111118; --border: #1e1e2e; --accent: #00ff88; --accent2: #0088ff; --text: #e0e0f0; --muted: #555570; --danger: #ff4466; }
@@ -16,7 +20,6 @@
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
   .card-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: block; }
   
-  /* Wallet List Styling */
   .wallet-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
   .wallet-item { 
     display: flex; align-items: center; gap: 12px; padding: 12px; 
@@ -29,8 +32,8 @@
   
   button { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-weight: bold; cursor: pointer; margin-top: 10px; }
   button:disabled { opacity: 0.3; cursor: not-allowed; }
-  textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 12px; min-height: 80px; margin-top: 10px; }
-  .log { font-size: 10px; color: var(--muted); max-height: 100px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+  textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 12px; min-height: 80px; margin-top: 10px; resize: none; }
+  .log { font-size: 10px; color: var(--muted); max-height: 150px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; }
   .status-badge { font-size: 12px; color: var(--accent); margin-top: 5px; display: block; }
   .pending-box { display: none; background: rgba(255,68,102,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; margin-top: 15px; }
 </style>
@@ -40,14 +43,14 @@
 <div class="container">
   <div class="header">
     <h1>Spell Bridge</h1>
-    <p style="font-size: 10px; color: var(--muted);">EIP-6963 Multi-Injection Discovery</p>
+    <p style="font-size: 10px; color: var(--muted);">BNB Chain Optimized Relay</p>
   </div>
 
   <!-- Step 1: Discovery -->
   <div class="card">
     <span class="card-label">Step 1: Select Spell Wallet</span>
     <div id="wallet-list" class="wallet-list">
-      <div style="font-size: 12px; color: var(--muted);">Scanning for extensions...</div>
+      <div style="font-size: 12px; color: var(--muted);">Scanning for Spell extension...</div>
     </div>
     <div id="connection-status" class="status-badge"></div>
   </div>
@@ -55,14 +58,14 @@
   <!-- Step 2: Bridge -->
   <div class="card">
     <span class="card-label">Step 2: Connect dApp Link</span>
-    <textarea id="wc-uri" placeholder="Paste wc: link here..."></textarea>
+    <textarea id="wc-uri" placeholder="Paste wc: link from the dApp here..."></textarea>
     <button id="btn-pair" onclick="startBridge()" disabled>Initialize Bridge</button>
   </div>
 
   <!-- Request UI -->
   <div id="pending-box" class="pending-box">
     <div style="color: var(--danger); font-weight: bold; margin-bottom: 10px;">Action Required in Spell</div>
-    <div id="req-method" style="font-size: 12px; margin-bottom: 10px;"></div>
+    <div id="req-method" style="font-size: 12px; margin-bottom: 10px; color: white;"></div>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
       <button onclick="approveRequest()">Approve</button>
       <button style="border-color: var(--danger); color: var(--danger);" onclick="rejectRequest()">Reject</button>
@@ -91,25 +94,21 @@ function log(msg, color = '') {
   el.scrollTop = el.scrollHeight;
 }
 
-// --- EIP-6963 Discovery Engine ---
+// --- EIP-6963 Discovery ---
 window.addEventListener("eip6963:announceProvider", (event) => {
   const info = event.detail.info;
   const provider = event.detail.provider;
-  
-  // Prevent duplicates
   if (providers.find(p => p.info.uuid === info.uuid)) return;
-  
   providers.push({ info, provider });
   updateWalletList();
-  log(`Found: ${info.name}`);
+  log(`Detected: ${info.name}`);
 });
 
-// Trigger discovery
 window.dispatchEvent(new Event("eip6963:requestProvider"));
 
-// Fallback for older injection
+// Fallback for standard injection
 setTimeout(() => {
-  if (window.ethereum && !providers.find(p => p.provider === window.ethereum)) {
+  if (window.ethereum && providers.length === 0) {
     providers.push({ 
       info: { name: "Injected Wallet", icon: "https://cdn-icons-png.flaticon.com/512/10149/10149458.png", uuid: 'legacy' }, 
       provider: window.ethereum 
@@ -121,12 +120,10 @@ setTimeout(() => {
 function updateWalletList() {
   const listEl = document.getElementById('wallet-list');
   listEl.innerHTML = '';
-  
   providers.forEach((item, index) => {
     const div = document.createElement('div');
     div.className = 'wallet-item';
     if (item.info.name.toLowerCase().includes('spell')) div.style.borderColor = 'var(--accent)';
-    
     div.innerHTML = `
       <img src="${item.info.icon}" alt="${item.info.name}">
       <div style="flex:1">
@@ -143,7 +140,6 @@ async function selectWallet(index) {
   const items = document.querySelectorAll('.wallet-item');
   items.forEach(i => i.classList.remove('selected'));
   items[index].classList.add('selected');
-  
   selectedProvider = providers[index].provider;
   
   try {
@@ -152,71 +148,103 @@ async function selectWallet(index) {
     account = accounts[0];
     document.getElementById('connection-status').textContent = `Connected: ${account.slice(0,6)}...${account.slice(-4)}`;
     document.getElementById('btn-pair').disabled = false;
-    log("Wallet Linked!", "var(--accent)");
+    log("Wallet Linked Successfully!", "var(--accent)");
   } catch (e) {
     log("Connection failed: " + e.message, "var(--danger)");
   }
 }
 
-// --- WalletConnect Bridge ---
+// --- WalletConnect Bridge Logic ---
 async function startBridge() {
   const uri = document.getElementById('wc-uri').value.trim();
-  if (!uri) return;
+  if (!uri) { log("Error: Please paste a wc: link", "var(--danger)"); return; }
+  if (!account) { log("Error: Connect wallet first", "var(--danger)"); return; }
 
-  log("Starting WalletConnect Relay...");
+  document.getElementById('btn-pair').textContent = "Connecting...";
+  log("Initializing WalletConnect Relay...");
+
   try {
-    await loadScript('https://cdn.jsdelivr.net/npm/@walletconnect/web3wallet@1.13.2/dist/index.umd.js');
-    await loadScript('https://cdn.jsdelivr.net/npm/@walletconnect/core@2.17.3/dist/index.umd.js');
+    const core = new window.WalletConnectCore.Core({ 
+      projectId: 'a0b855ceefbc43cca5d8e13bdc63a0ac' 
+    });
 
-    const core = new window.WalletConnectCore.Core({ projectId: 'a0b855ceefbc43cca5d8e13bdc63a0ac' });
     wcClient = await window.WalletConnectWeb3Wallet.Web3Wallet.init({
       core,
-      metadata: { name: 'Spell Bridge', description: 'Mises Relay', url: window.location.href, icons: [] }
+      metadata: { 
+        name: 'Spell Bridge Pro', 
+        description: 'BNB Chain Relay', 
+        url: window.location.origin, 
+        icons: ['https://cdn-icons-png.flaticon.com/512/10149/10149458.png'] 
+      }
     });
 
+    // Handle Session Proposal (The Handshake)
     wcClient.on('session_proposal', async (proposal) => {
-      const namespaces = {
-        eip155: {
-          accounts: [`eip155:56:${account}`],
-          methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'eth_sign'],
-          events: ['accountsChanged', 'chainChanged'],
-          chains: ['eip155:56']
-        }
-      };
-      await wcClient.approveSession({ id: proposal.id, namespaces });
-      log("Bridge Active: dApp connected to Spell", "var(--accent)");
-      document.getElementById('btn-pair').textContent = "✓ Bridge Active";
+      log("Received session proposal...");
+      try {
+        const namespaces = {
+          eip155: {
+            // We provide both BNB (56) and ETH (1) to ensure the dApp is happy
+            accounts: [`eip155:56:${account}`, `eip155:1:${account}`],
+            methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'eth_sign', 'eth_accounts'],
+            events: ['accountsChanged', 'chainChanged'],
+            chains: ['eip155:56', 'eip155:1']
+          }
+        };
+        await wcClient.approveSession({ id: proposal.id, namespaces });
+        log("BRIDGE ACTIVE: dApp is now feeding to Spell", "var(--accent)");
+        document.getElementById('btn-pair').textContent = "✓ Bridge Active";
+        document.getElementById('btn-pair').style.borderColor = "var(--accent)";
+      } catch (approveErr) {
+        log("Proposal Rejected: " + approveErr.message, "var(--danger)");
+      }
     });
 
+    // Handle Incoming Requests (Transactions/Signs)
     wcClient.on('session_request', (event) => {
       pendingRequest = event;
-      document.getElementById('req-method').textContent = `Method: ${event.params.request.method}`;
+      const method = event.params.request.method;
+      document.getElementById('req-method').textContent = `Method: ${method}`;
       document.getElementById('pending-box').style.display = 'block';
-      log("Request received: " + event.params.request.method);
+      log(`Incoming Request: ${method}`, "yellow");
+      
+      // Bring window to focus if possible
+      window.focus();
     });
 
+    // Start the pairing
+    log("Sending pairing signal to relay...");
     await wcClient.core.pairing.pair({ uri });
+    
   } catch (err) {
     log("Bridge Error: " + err.message, "var(--danger)");
+    document.getElementById('btn-pair').textContent = "Initialize Bridge";
   }
 }
 
 async function approveRequest() {
   if (!pendingRequest) return;
   try {
+    log("Sending request to Spell Wallet...");
     const result = await selectedProvider.request({
       method: pendingRequest.params.request.method,
       params: pendingRequest.params.request.params
     });
+    
     await wcClient.respondSessionRequest({
       topic: pendingRequest.topic,
       response: { id: pendingRequest.id, jsonrpc: '2.0', result }
     });
-    log("Request Approved", "var(--accent)");
+    log("Request Approved & Sent to dApp", "var(--accent)");
   } catch (e) {
     log("Request Failed: " + e.message, "var(--danger)");
+    await wcClient.respondSessionRequest({
+      topic: pendingRequest.topic,
+      response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: e.message } }
+    });
   }
   document.getElementById('pending-box').style.display = 'none';
+  pendingRequest = null;
 }
 
 async function rejectRequest() {
@@ -226,11 +254,8 @@ async function rejectRequest() {
     response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: 'User Rejected' } }
   });
   document.getElementById('pending-box').style.display = 'none';
-  log("Request Rejected");
-}
-
-function loadScript(src) {
-  return new Promise(r => { const s = document.createElement('script'); s.src = src; s.onload = r; document.head.appendChild(s); });
+  log("Request Rejected by user");
+  pendingRequest = null;
 }
 </script>
 </body>
