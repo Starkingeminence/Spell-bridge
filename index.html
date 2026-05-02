@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Spell Bridge Pro - BNB Edition</title>
-<!-- Pre-loading libraries for stability -->
+<title>Spell Bridge Pro - BNB</title>
+
+<!-- Using Unpkg for better compatibility with mobile browsers -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@walletconnect/core@2.17.3/dist/index.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3wallet@1.13.2/dist/index.umd.js"></script>
+<script src="https://unpkg.com/@walletconnect/core@2.17.3/dist/index.umd.js"></script>
+<script src="https://unpkg.com/@walletconnect/web3wallet@1.13.2/dist/index.umd.js"></script>
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
@@ -20,21 +21,19 @@
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
   .card-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: block; }
   
-  .wallet-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
   .wallet-item { 
     display: flex; align-items: center; gap: 12px; padding: 12px; 
     background: rgba(255,255,255,0.03); border: 1px solid var(--border); 
-    border-radius: 10px; cursor: pointer; transition: 0.2s;
+    border-radius: 10px; cursor: pointer; transition: 0.2s; margin-bottom: 8px;
   }
-  .wallet-item:hover { border-color: var(--accent); background: rgba(0,255,136,0.05); }
+  .wallet-item:hover { border-color: var(--accent); }
   .wallet-item img { width: 28px; height: 28px; border-radius: 6px; }
   .wallet-item.selected { border-color: var(--accent); background: rgba(0,255,136,0.1); }
   
   button { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-weight: bold; cursor: pointer; margin-top: 10px; }
   button:disabled { opacity: 0.3; cursor: not-allowed; }
-  textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 12px; min-height: 80px; margin-top: 10px; resize: none; }
-  .log { font-size: 10px; color: var(--muted); max-height: 150px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; }
-  .status-badge { font-size: 12px; color: var(--accent); margin-top: 5px; display: block; }
+  textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 80px; margin-top: 10px; resize: none; }
+  .log { font-size: 10px; color: var(--muted); max-height: 150px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; line-height: 1.4; }
   .pending-box { display: none; background: rgba(255,68,102,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; margin-top: 15px; }
 </style>
 </head>
@@ -46,23 +45,20 @@
     <p style="font-size: 10px; color: var(--muted);">BNB Chain Optimized Relay</p>
   </div>
 
-  <!-- Step 1: Discovery -->
   <div class="card">
     <span class="card-label">Step 1: Select Spell Wallet</span>
-    <div id="wallet-list" class="wallet-list">
-      <div style="font-size: 12px; color: var(--muted);">Scanning for Spell extension...</div>
+    <div id="wallet-list">
+      <div style="font-size: 12px; color: var(--muted);">Scanning for extensions...</div>
     </div>
-    <div id="connection-status" class="status-badge"></div>
+    <div id="connection-status" style="font-size: 12px; color: var(--accent); margin-top: 8px;"></div>
   </div>
 
-  <!-- Step 2: Bridge -->
   <div class="card">
     <span class="card-label">Step 2: Connect dApp Link</span>
-    <textarea id="wc-uri" placeholder="Paste wc: link from the dApp here..."></textarea>
+    <textarea id="wc-uri" placeholder="Paste wc: link here..."></textarea>
     <button id="btn-pair" onclick="startBridge()" disabled>Initialize Bridge</button>
   </div>
 
-  <!-- Request UI -->
   <div id="pending-box" class="pending-box">
     <div style="color: var(--danger); font-weight: bold; margin-bottom: 10px;">Action Required in Spell</div>
     <div id="req-method" style="font-size: 12px; margin-bottom: 10px; color: white;"></div>
@@ -94,28 +90,23 @@ function log(msg, color = '') {
   el.scrollTop = el.scrollHeight;
 }
 
-// --- EIP-6963 Discovery ---
+// Check if libraries loaded correctly
+window.onload = () => {
+  if (window.WalletConnectCore && window.WalletConnectWeb3Wallet) {
+    log("Bridge Engine: Ready", "var(--accent)");
+  } else {
+    log("Bridge Engine Error: Libraries failed to load. Please refresh.", "var(--danger)");
+  }
+};
+
+// --- Discovery ---
 window.addEventListener("eip6963:announceProvider", (event) => {
   const info = event.detail.info;
-  const provider = event.detail.provider;
   if (providers.find(p => p.info.uuid === info.uuid)) return;
-  providers.push({ info, provider });
+  providers.push({ info, provider: event.detail.provider });
   updateWalletList();
-  log(`Detected: ${info.name}`);
 });
-
 window.dispatchEvent(new Event("eip6963:requestProvider"));
-
-// Fallback for standard injection
-setTimeout(() => {
-  if (window.ethereum && providers.length === 0) {
-    providers.push({ 
-      info: { name: "Injected Wallet", icon: "https://cdn-icons-png.flaticon.com/512/10149/10149458.png", uuid: 'legacy' }, 
-      provider: window.ethereum 
-    });
-    updateWalletList();
-  }
-}, 1000);
 
 function updateWalletList() {
   const listEl = document.getElementById('wallet-list');
@@ -124,138 +115,99 @@ function updateWalletList() {
     const div = document.createElement('div');
     div.className = 'wallet-item';
     if (item.info.name.toLowerCase().includes('spell')) div.style.borderColor = 'var(--accent)';
-    div.innerHTML = `
-      <img src="${item.info.icon}" alt="${item.info.name}">
-      <div style="flex:1">
-        <div style="font-size: 14px; font-weight: bold;">${item.info.name}</div>
-        <div style="font-size: 10px; color: var(--muted);">${item.info.rdns || 'Extension'}</div>
-      </div>
-    `;
+    div.innerHTML = `<img src="${item.info.icon}"> <div style="font-size: 14px; font-weight: bold;">${item.info.name}</div>`;
     div.onclick = () => selectWallet(index);
     listEl.appendChild(div);
   });
 }
 
 async function selectWallet(index) {
-  const items = document.querySelectorAll('.wallet-item');
-  items.forEach(i => i.classList.remove('selected'));
-  items[index].classList.add('selected');
   selectedProvider = providers[index].provider;
-  
   try {
-    log(`Connecting to ${providers[index].info.name}...`);
     const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
     account = accounts[0];
-    document.getElementById('connection-status').textContent = `Connected: ${account.slice(0,6)}...${account.slice(-4)}`;
+    document.getElementById('connection-status').textContent = `Connected: ${account}`;
     document.getElementById('btn-pair').disabled = false;
-    log("Wallet Linked Successfully!", "var(--accent)");
-  } catch (e) {
-    log("Connection failed: " + e.message, "var(--danger)");
-  }
+    log("Spell Wallet Linked", "var(--accent)");
+  } catch (e) { log("Connection failed: " + e.message, "var(--danger)"); }
 }
 
-// --- WalletConnect Bridge Logic ---
+// --- Bridge Logic ---
 async function startBridge() {
   const uri = document.getElementById('wc-uri').value.trim();
-  if (!uri) { log("Error: Please paste a wc: link", "var(--danger)"); return; }
-  if (!account) { log("Error: Connect wallet first", "var(--danger)"); return; }
+  if (!uri) return log("Paste a link first!", "orange");
 
-  document.getElementById('btn-pair').textContent = "Connecting...";
-  log("Initializing WalletConnect Relay...");
+  // Safety check for the "Core" error
+  if (!window.WalletConnectCore || !window.WalletConnectWeb3Wallet) {
+    log("Critical: WalletConnect libraries not found. Refreshing page...", "var(--danger)");
+    return;
+  }
 
+  log("Starting Relay...");
   try {
-    const core = new window.WalletConnectCore.Core({ 
-      projectId: 'a0b855ceefbc43cca5d8e13bdc63a0ac' 
-    });
+    // Use the correct UMD access pattern
+    const Core = window.WalletConnectCore.Core;
+    const Web3Wallet = window.WalletConnectWeb3Wallet.Web3Wallet;
 
-    wcClient = await window.WalletConnectWeb3Wallet.Web3Wallet.init({
+    const core = new Core({ projectId: 'a0b855ceefbc43cca5d8e13bdc63a0ac' });
+    wcClient = await Web3Wallet.init({
       core,
-      metadata: { 
-        name: 'Spell Bridge Pro', 
-        description: 'BNB Chain Relay', 
-        url: window.location.origin, 
-        icons: ['https://cdn-icons-png.flaticon.com/512/10149/10149458.png'] 
-      }
+      metadata: { name: 'Spell Bridge', description: 'BNB Relay', url: window.location.origin, icons: [] }
     });
 
-    // Handle Session Proposal (The Handshake)
     wcClient.on('session_proposal', async (proposal) => {
-      log("Received session proposal...");
-      try {
-        const namespaces = {
-          eip155: {
-            // We provide both BNB (56) and ETH (1) to ensure the dApp is happy
-            accounts: [`eip155:56:${account}`, `eip155:1:${account}`],
-            methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'eth_sign', 'eth_accounts'],
-            events: ['accountsChanged', 'chainChanged'],
-            chains: ['eip155:56', 'eip155:1']
-          }
-        };
-        await wcClient.approveSession({ id: proposal.id, namespaces });
-        log("BRIDGE ACTIVE: dApp is now feeding to Spell", "var(--accent)");
-        document.getElementById('btn-pair').textContent = "✓ Bridge Active";
-        document.getElementById('btn-pair').style.borderColor = "var(--accent)";
-      } catch (approveErr) {
-        log("Proposal Rejected: " + approveErr.message, "var(--danger)");
-      }
+      log("Proposal received. Handshaking...");
+      const namespaces = {
+        eip155: {
+          accounts: [`eip155:56:${account}`, `eip155:1:${account}`],
+          methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'eth_sign'],
+          events: ['accountsChanged', 'chainChanged'],
+          chains: ['eip155:56', 'eip155:1']
+        }
+      };
+      await wcClient.approveSession({ id: proposal.id, namespaces });
+      log("BRIDGE ACTIVE", "var(--accent)");
+      document.getElementById('btn-pair').textContent = "✓ Connected";
     });
 
-    // Handle Incoming Requests (Transactions/Signs)
     wcClient.on('session_request', (event) => {
       pendingRequest = event;
-      const method = event.params.request.method;
-      document.getElementById('req-method').textContent = `Method: ${method}`;
+      document.getElementById('req-method').textContent = `Method: ${event.params.request.method}`;
       document.getElementById('pending-box').style.display = 'block';
-      log(`Incoming Request: ${method}`, "yellow");
-      
-      // Bring window to focus if possible
-      window.focus();
+      log("New Request: " + event.params.request.method, "yellow");
     });
 
-    // Start the pairing
-    log("Sending pairing signal to relay...");
     await wcClient.core.pairing.pair({ uri });
-    
+    log("Pairing signal sent...");
   } catch (err) {
     log("Bridge Error: " + err.message, "var(--danger)");
-    document.getElementById('btn-pair').textContent = "Initialize Bridge";
+    console.error(err);
   }
 }
 
 async function approveRequest() {
   if (!pendingRequest) return;
   try {
-    log("Sending request to Spell Wallet...");
     const result = await selectedProvider.request({
       method: pendingRequest.params.request.method,
       params: pendingRequest.params.request.params
     });
-    
     await wcClient.respondSessionRequest({
       topic: pendingRequest.topic,
       response: { id: pendingRequest.id, jsonrpc: '2.0', result }
     });
-    log("Request Approved & Sent to dApp", "var(--accent)");
-  } catch (e) {
-    log("Request Failed: " + e.message, "var(--danger)");
-    await wcClient.respondSessionRequest({
-      topic: pendingRequest.topic,
-      response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: e.message } }
-    });
-  }
+    log("Approved!", "var(--accent)");
+  } catch (e) { log("Failed: " + e.message, "var(--danger)"); }
   document.getElementById('pending-box').style.display = 'none';
-  pendingRequest = null;
 }
 
 async function rejectRequest() {
   if (!pendingRequest) return;
   await wcClient.respondSessionRequest({
     topic: pendingRequest.topic,
-    response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: 'User Rejected' } }
+    response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: 'Rejected' } }
   });
   document.getElementById('pending-box').style.display = 'none';
-  log("Request Rejected by user");
-  pendingRequest = null;
 }
 </script>
 </body>
