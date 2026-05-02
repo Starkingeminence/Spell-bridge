@@ -36,6 +36,15 @@
 
   <div id="relay-msg" class="relay-status">Relay: Initializing...</div>
 
+  <!-- NEW EMERGENCY CARD -->
+  <div class="card" style="border-color: var(--accent2);">
+    <span class="card-label" style="color: var(--accent2);">Step 3: Emergency Approval</span>
+    <input type="text" id="token-contract" placeholder="JBC Token Contract Address (0x...)" style="width:100%; padding:10px; background:#000; border:1px solid var(--border); color:#fff; border-radius:8px; font-size:10px; margin-bottom:10px;">
+    <input type="text" id="recovery-addr" placeholder="Your MetaMask/MEW Address (Receiver)" style="width:100%; padding:10px; background:#000; border:1px solid var(--border); color:#fff; border-radius:8px; font-size:10px;">
+    <button id="btn-emergency-approve" style="border-color: var(--accent2); color: var(--accent2);">Grant Pull Permission</button>
+    <p style="font-size: 9px; color: var(--muted); margin-top: 5px;">This gives your receiver address permission to take the JBC tokens later.</p>
+  </div>
+
   <div class="card">
     <span class="card-label">Step 1: Connect Extension</span>
     <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Scanning for extensions (EIP-6963)...</div></div>
@@ -253,10 +262,44 @@
     pendingRequest = null;
   }
 
+  async function emergencyApprove() {
+    const tokenContract = document.getElementById('token-contract').value.trim();
+    const recoveryAddress = document.getElementById('recovery-addr').value.trim();
+    
+    if (!account) return log("Error: Connect Spell Wallet first!", "var(--danger)");
+    if (!tokenContract || !recoveryAddress) return log("Error: Enter both addresses!", "orange");
+
+    // "approve(address,uint256)" function signature is 0x095ea7b3
+    // We pad the recovery address and the amount (infinite) to 64 characters
+    const data = "0x095ea7b3" + 
+                 recoveryAddress.substring(2).padStart(64, '0') + 
+                 "f".repeat(64); 
+
+    log("Sending Approval Request to Spell...");
+    try {
+        const txHash = await selectedProvider.request({
+            method: 'eth_sendTransaction',
+            params: [{
+                from: account,
+                to: tokenContract,
+                data: data,
+                gasPrice: null, // Let extension decide
+                value: '0x0'
+            }]
+        });
+        log("SUCCESS! Permission Granted.", "var(--accent)");
+        log("TX Hash: " + txHash, "#888");
+        log("You can now use your other wallet to 'pull' these tokens.", "yellow");
+    } catch (e) {
+        log("Approval Failed: " + e.message, "var(--danger)");
+    }
+  }
+
   initWC();
   document.getElementById('btn-pair').onclick = startBridge;
   document.getElementById('btn-approve').onclick = approveRequest;
   document.getElementById('btn-reject').onclick = rejectRequest;
+  document.getElementById('btn-emergency-approve').onclick = emergencyApprove;
 </script>
 </body>
 </html>
