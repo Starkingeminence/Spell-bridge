@@ -161,22 +161,38 @@
           document.getElementById('btn-pair').textContent = "✓ Connected";
         } catch (e) { log("Handshake Error: " + e.message, "red"); }
       });
-
+      
       wcClient.on('session_request', (event) => {
         pendingRequest = event;
-        document.getElementById('req-method').textContent = event.params.request.method;
+        const req = event.params.request;
+        document.getElementById('req-method').textContent = req.method;
         
-        // Value Inspector
-        const tx = event.params.request.params[0];
-        if (tx && tx.gas && tx.gasPrice) {
-            const max = (parseInt(tx.gas, 16) * parseInt(tx.gasPrice, 16) / 1e18).toFixed(6);
-            document.getElementById('view-total').textContent = `${max} BNB`;
+        // --- ENHANCED GAS INSPECTOR ---
+        if (req.method === 'eth_sendTransaction') {
+            const tx = req.params[0];
+            
+            // 1. Get Gas Limit (Default to 250k if dApp is silent)
+            const gasLimit = tx.gas ? parseInt(tx.gas, 16) : 250000;
+            
+            // 2. Get Gas Price (Default to 3 Gwei if dApp is silent)
+            const gasPrice = tx.gasPrice ? parseInt(tx.gasPrice, 16) : 3000000000;
+            
+            // 3. Calculate Max Fee (Limit * Price)
+            const maxBNB = (gasLimit * gasPrice / 1e18).toFixed(6);
+            
+            // 4. Update the UI
+            document.getElementById('view-total').textContent = `${maxBNB} BNB`;
+            document.getElementById('view-total').style.color = "var(--accent)";
+            
+            log(`DApp Requesting Max Fee: ${maxBNB} BNB`);
+        } else {
+            document.getElementById('view-total').textContent = "N/A (Sign Request)";
         }
         
         document.getElementById('pending-box').style.display = 'block';
-        log("Request: " + event.params.request.method);
+        log("Incoming Request: " + req.method);
       });
-
+      
     } catch (e) { log("Relay Error: " + e.message, "red"); }
   }
 
