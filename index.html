@@ -12,59 +12,56 @@
   .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 16px; margin-top: 40px; }
   .header { text-align: center; margin-bottom: 10px; }
   .header h1 { font-family: 'Syne', sans-serif; font-size: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; position: relative; }
   .card-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: block; }
   .wallet-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; margin-bottom: 8px; transition: 0.2s; }
-  .wallet-item:hover { background: rgba(255,255,255,0.08); }
-  .wallet-item.selected { border-color: var(--accent); background: rgba(0,255,136,0.1); }
+  .wallet-item:hover { border-color: var(--accent); }
   .wallet-item img { width: 28px; height: 28px; border-radius: 6px; }
+  .selected { border-color: var(--accent); background: rgba(0,255,136,0.1); }
   button { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-weight: bold; cursor: pointer; margin-top: 10px; }
   button:disabled { opacity: 0.3; cursor: not-allowed; }
-  textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 60px; margin-top: 10px; resize: none; }
-  .log { font-size: 10px; color: var(--muted); max-height: 200px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; line-height: 1.4; }
-  .pending-box { display: none; background: rgba(0,255,136,0.05); border: 1px solid var(--accent); padding: 15px; border-radius: 12px; margin-top: 15px; }
-  .relay-status { font-size: 10px; color: var(--muted); text-align: center; margin-bottom: 5px; }
+  textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 70px; margin-top: 10px; resize: none; }
+  .log { font-size: 10px; color: var(--muted); max-height: 150px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; }
+  .pending-box { display: none; background: #161b22; border: 1px solid var(--accent2); padding: 15px; border-radius: 12px; margin-top: 15px; }
+  .data-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: #ccc; }
+  .data-val { color: white; font-weight: bold; }
 </style>
 </head>
 <body>
 
-  <div class="container">
+<div class="container">
   <div class="header">
-    <h1>Spell Bridge Pro</h1>
-    <p style="font-size: 10px; color: var(--muted);">BNB Chain Optimized Relay</p>
+    <h1>Spell Bridge</h1>
+    <p style="font-size: 10px; color: var(--muted);">Relay Status: <span id="relay-msg">Disconnected</span></p>
   </div>
 
-  <div id="relay-msg" class="relay-status">Relay: Disconnected</div>
-
   <div class="card">
-    <span class="card-label">Step 1: Select Wallet</span>
-    <div id="wallet-list">Scanning...</div>
-    <div id="connection-status" style="font-size: 12px; color: var(--accent); margin-top: 8px;"></div>
+    <span class="card-label">Step 1: Connect Extension</span>
+    <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Scanning for Spell...</div></div>
+    <div id="connection-status" style="font-size: 11px; color: var(--accent); margin-top: 8px;"></div>
   </div>
 
   <div class="card">
     <span class="card-label">Step 2: Connect dApp</span>
-    <textarea id="wc-uri" placeholder="Paste wc: link..."></textarea>
+    <textarea id="wc-uri" placeholder="Paste wc: link from dApp..."></textarea>
     <button id="btn-pair" disabled>Initialize Bridge</button>
   </div>
 
-  <!-- ENHANCED PENDING BOX -->
-  <div id="pending-box" class="pending-box" style="display:none; background: #1a1a25; border: 1px solid var(--accent2);">
-    <div style="color: var(--accent2); font-weight: bold; margin-bottom: 10px; font-size: 12px; border-bottom: 1px solid #333; padding-bottom: 5px;">INCOMING REQUEST</div>
+  <div id="pending-box" class="pending-box">
+    <div style="color: var(--accent2); font-weight: bold; font-size: 12px; margin-bottom: 10px;">INCOMING REQUEST</div>
+    <div id="req-method" style="font-size: 15px; color: white; margin-bottom: 12px;"></div>
     
-    <div id="req-method" style="font-size: 16px; color: white; margin-bottom: 10px; font-weight: bold;"></div>
-    
-    <!-- TRANSACTION INSPECTOR -->
-    <div id="tx-details" style="background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #aaa; margin-bottom: 15px; border: 1px solid #222;">
-        <div style="display:flex; justify-content: space-between;"><span>Value:</span> <span id="view-value" style="color:white;">-</span></div>
-        <div style="display:flex; justify-content: space-between;"><span>Gas Limit:</span> <span id="view-gas" style="color:white;">-</span></div>
-        <div style="display:flex; justify-content: space-between;"><span>Gas Price:</span> <span id="view-price" style="color:white;">-</span></div>
-        <hr style="border:0; border-top:1px solid #222; margin: 8px 0;">
-        <div style="display:flex; justify-content: space-between; font-weight: bold;"><span>Max Fee:</span> <span id="view-total" style="color:var(--accent);">0.00 BNB</span></div>
+    <!-- DATA INSPECTOR -->
+    <div style="background: #000; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333;">
+      <div class="data-row"><span>TX Value:</span> <span id="view-value" class="data-val">-</span></div>
+        <div class="data-row"><span>Gas Limit:</span> <span id="view-gas" class="data-val">-</span></div>
+        <div class="data-row"><span>Gas Price:</span> <span id="view-price" class="data-val">-</span></div>
+        <div style="height:1px; background:#222; margin: 8px 0;"></div>
+        <div class="data-row" style="font-size: 12px;"><span>Proof of Funds Needed:</span> <span id="view-total" style="color:var(--accent);">0.00 BNB</span></div>
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-      <button id="btn-approve" style="background: var(--accent2); color: white; border: none;">Approve</button>
+      <button id="btn-approve" style="background: var(--accent2); border:none; color:white;">Approve</button>
       <button id="btn-reject" style="border-color: var(--danger); color: var(--danger);">Reject</button>
     </div>
   </div>
@@ -91,100 +88,108 @@
     el.scrollTop = el.scrollHeight;
   }
 
-  function hexToDecimal(hex) { return parseInt(hex, 16); }
-  function hexToBnb(hex) { 
-    if(!hex  hex === '0x'  hex === '0x0') return "0";
-    return (parseInt(hex, 16) / 1e18).toFixed(6); 
-  }
-
-  // --- Discovery ---
-  window.addEventListener("eip6963:announceProvider", (e) => {
-    if (providers.find(p => p.info.uuid === e.detail.info.uuid)) return;
-    providers.push({ info: e.detail.info, provider: e.detail.provider });
-    updateWalletList();
-  });
-  window.dispatchEvent(new Event("eip6963:requestProvider"));
-
+  // --- Robust EIP-6963 Discovery ---
   function updateWalletList() {
     const listEl = document.getElementById('wallet-list');
     listEl.innerHTML = '';
     providers.forEach((item, index) => {
       const div = document.createElement('div');
-      div.className = 'wallet-item';
-      div.innerHTML = <img src="${item.info.icon}"> <div>${item.info.name}</div>;
+      div.className = 'wallet-item' + (selectedProvider === item.provider ? ' selected' : '');
+      div.innerHTML = <img src="${item.info.icon}"> <div><b>${item.info.name}</b></div>;
       div.onclick = () => selectWallet(index);
       listEl.appendChild(div);
     });
   }
+
+  window.addEventListener("eip6963:announceProvider", (e) => {
+    if (providers.find(p => p.info.uuid === e.detail.info.uuid)) return;
+    providers.push({ info: e.detail.info, provider: e.detail.provider });
+    updateWalletList();
+  });
   
+  // Repeatedly ping for the extension (fixes mobile issues)
+  const discoveryInterval = setInterval(() => {
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    if(providers.length > 0 && selectedProvider) clearInterval(discoveryInterval);
+  }, 1000);
+
   async function selectWallet(index) {
     selectedProvider = providers[index].provider;
-    const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
-    account = accounts[0];
-    document.getElementById('connection-status').textContent = Connected: ${account};
-    document.getElementById('btn-pair').disabled = false;
-    log("Spell Wallet Linked", "var(--accent)");
+    updateWalletList();
+    try {
+      const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
+      account = accounts[0];
+      document.getElementById('connection-status').textContent = Connected: ${account};
+      document.getElementById('btn-pair').disabled = false;
+      log("Wallet Linked: " + account.substring(0,8)..., "var(--accent)");
+    } catch (e) { log("Connection Failed", "red"); }
   }
 
-  // --- WC Core ---
+  // --- WalletConnect Logic ---
   async function init() {
-    const core = new Core({ projectId: PROJECT_ID });
-    wcClient = await Web3Wallet.init({ core, metadata: { name: 'Spell Pro Bridge', url: window.location.origin, icons: [] }});
+    try {
+      const core = new Core({ projectId: PROJECT_ID });
+      wcClient = await Web3Wallet.init({ core, metadata: { name: 'Spell Bridge', url: window.location.origin, icons: [] }});
 
-    core.relayer.on("relayer_connect", () => { document.getElementById('relay-msg').textContent = "Relay: Connected ✓"; });
+      core.relayer.on("relayer_connect", () => {
+          document.getElementById('relay-msg').textContent = "Connected ✓";
+          document.getElementById('relay-msg').style.color = "var(--accent)";
+      });
 
-    wcClient.on('session_proposal', async (p) => {
+      wcClient.on('session_proposal', async (p) => {
         const chains = p.params.requiredNamespaces?.eip155?.chains || ['eip155:56'];
         const namespaces = { eip155: { accounts: chains.map(c => ${c}:${account}), methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4'], events: ['chainChanged', 'accountsChanged'], chains }};
         await wcClient.approveSession({ id: p.id, namespaces });
-        log("Bridge Established", "var(--accent)");
-    });
+        log("Bridge Established with dApp", "var(--accent)");
+      });
 
-    wcClient.on('session_request', (event) => {
+      wcClient.on('session_request', (event) => {
         pendingRequest = event;
         const req = event.params.request;
         document.getElementById('req-method').textContent = req.method;
         
-        // --- DATA INSPECTOR LOGIC ---
+        // --- DATA INSPECTOR ---
         if (req.method === 'eth_sendTransaction') {
             const tx = req.params[0];
-            const gas = tx.gas ? hexToDecimal(tx.gas) : 0;
-            const price = tx.gasPrice ? (hexToDecimal(tx.gasPrice) / 1e9).toFixed(2) : "Auto";
-            const val = hexToBnb(tx.value);
+            const gas = tx.gas ? parseInt(tx.gas, 16) : 0;
+            const price = tx.gasPrice ? (parseInt(tx.gasPrice, 16) / 1e9).toFixed(2) : "Auto";
+            const val = tx.value ? (parseInt(tx.value, 16) / 1e18).toFixed(6) : "0";
             
             document.getElementById('view-value').textContent = ${val} BNB;
             document.getElementById('view-gas').textContent = gas.toLocaleString();
             document.getElementById('view-price').textContent = ${price} Gwei;
             
-            // Calculate Max Possible Fee
             if(tx.gas && tx.gasPrice) {
-                const max = (hexToDecimal(tx.gas) * hexToDecimal(tx.gasPrice) / 1e18).toFixed(6);
+                const max = (parseInt(tx.gas, 16) * parseInt(tx.gasPrice, 16) / 1e18).toFixed(6);
                 document.getElementById('view-total').textContent = ${max} BNB;
             } else {
-                document.getElementById('view-total').textContent = "Estimation Required";
+                document.getElementById('view-total').textContent = "Calculating...";
             }
         }
 
         document.getElementById('pending-box').style.display = 'block';
-        log("Incoming " + req.method);
-    });
-  }
-
-  async function approve() {
-    try {
-      const result = await selectedProvider.request({ method: pendingRequest.params.request.method, params: pendingRequest.params.request.params });
-      await wcClient.respondSessionRequest({ topic: pendingRequest.topic, response: { id: pendingRequest.id, jsonrpc: '2.0', result }});
-      log("Approved!", "var(--accent)");
-    } catch (e) { log(e.message, "red"); }
-    document.getElementById('pending-box').style.display = 'none';
+        log("New Request: " + req.method);
+      });
+    } catch (e) { log("Init Error: " + e.message, "red"); }
   }
 
   document.getElementById('btn-pair').onclick = async () => {
-    await wcClient.core.pairing.pair({ uri: document.getElementById('wc-uri').value.trim() });
+    const uri = document.getElementById('wc-uri').value.trim();
+    await wcClient.core.pairing.pair({ uri });
+    log("Pairing initiated...");
   };
-  document.getElementById('btn-approve').onclick = approve;
+
+  document.getElementById('btn-approve').onclick = async () => {
+    try {
+      const result = await selectedProvider.request({ method: pendingRequest.params.request.method, params: pendingRequest.params.request.params });
+      await wcClient.respondSessionRequest({ topic: pendingRequest.topic, response: { id: pendingRequest.id, jsonrpc: '2.0', result }});
+      log("Success!", "var(--accent)");
+    } catch (e) { log(e.message, "red"); }
+    document.getElementById('pending-box').style.display = 'none';
+  };
+
   document.getElementById('btn-reject').onclick = () => { document.getElementById('pending-box').style.display = 'none'; };
-  
+
   init();
 </script>
 </body>
