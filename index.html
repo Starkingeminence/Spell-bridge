@@ -27,6 +27,95 @@
 </style>
 </head>
 <body>
+
+  <div class="container">
+  <div class="header">
+    <h1>Spell Bridge Pro</h1>
+    <p style="font-size: 10px; color: var(--muted);">BNB Chain Optimized Relay</p>
+  </div>
+
+  <div id="relay-msg" class="relay-status">Relay: Disconnected</div>
+
+  <div class="card">
+    <span class="card-label">Step 1: Select Wallet</span>
+    <div id="wallet-list">Scanning...</div>
+    <div id="connection-status" style="font-size: 12px; color: var(--accent); margin-top: 8px;"></div>
+  </div>
+
+  <div class="card">
+    <span class="card-label">Step 2: Connect dApp</span>
+    <textarea id="wc-uri" placeholder="Paste wc: link..."></textarea>
+    <button id="btn-pair" disabled>Initialize Bridge</button>
+  </div>
+
+  <!-- ENHANCED PENDING BOX -->
+  <div id="pending-box" class="pending-box" style="display:none; background: #1a1a25; border: 1px solid var(--accent2);">
+    <div style="color: var(--accent2); font-weight: bold; margin-bottom: 10px; font-size: 12px; border-bottom: 1px solid #333; padding-bottom: 5px;">INCOMING REQUEST</div>
+    
+    <div id="req-method" style="font-size: 16px; color: white; margin-bottom: 10px; font-weight: bold;"></div>
+    
+    <!-- TRANSACTION INSPECTOR -->
+    <div id="tx-details" style="background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #aaa; margin-bottom: 15px; border: 1px solid #222;">
+        <div style="display:flex; justify-content: space-between;"><span>Value:</span> <span id="view-value" style="color:white;">-</span></div>
+        <div style="display:flex; justify-content: space-between;"><span>Gas Limit:</span> <span id="view-gas" style="color:white;">-</span></div>
+        <div style="display:flex; justify-content: space-between;"><span>Gas Price:</span> <span id="view-price" style="color:white;">-</span></div>
+        <hr style="border:0; border-top:1px solid #222; margin: 8px 0;">
+        <div style="display:flex; justify-content: space-between; font-weight: bold;"><span>Max Fee:</span> <span id="view-total" style="color:var(--accent);">0.00 BNB</span></div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <button id="btn-approve" style="background: var(--accent2); color: white; border: none;">Approve</button>
+      <button id="btn-reject" style="border-color: var(--danger); color: var(--danger);">Reject</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="card-label">Activity Log</span>
+    <div id="log" class="log"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { Core } from "https://esm.sh/@walletconnect/core@2.10.3";
+  import { Web3Wallet } from "https://esm.sh/@walletconnect/web3wallet@1.9.3";
+
+  const PROJECT_ID = '86694c6d7377473e04f5ef5e714e12ed';
+  let selectedProvider = null, account = null, wcClient = null, pendingRequest = null, providers = [];
+
+  function log(msg, color = '') {
+    const el = document.getElementById('log');
+    const div = document.createElement('div');
+    if(color) div.style.color = color;
+    div.textContent = > ${msg};
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function hexToDecimal(hex) { return parseInt(hex, 16); }
+  function hexToBnb(hex) { 
+    if(!hex  hex === '0x'  hex === '0x0') return "0";
+    return (parseInt(hex, 16) / 1e18).toFixed(6); 
+  }
+
+  // --- Discovery ---
+  window.addEventListener("eip6963:announceProvider", (e) => {
+    if (providers.find(p => p.info.uuid === e.detail.info.uuid)) return;
+    providers.push({ info: e.detail.info, provider: e.detail.provider });
+    updateWalletList();
+  });
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+  function updateWalletList() {
+    const listEl = document.getElementById('wallet-list');
+    listEl.innerHTML = '';
+    providers.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.className = 'wallet-item';
+      div.innerHTML = <img src="${item.info.icon}"> <div>${item.info.name}</div>;
+      div.onclick = () => selectWallet(index);
+      listEl.appendChild(div);
+    });
+  }
   
   async function selectWallet(index) {
     selectedProvider = providers[index].provider;
