@@ -27,309 +27,76 @@
 </style>
 </head>
 <body>
-
-<div class="container">
-  <div class="header">
-    <h1>Spell Bridge</h1>
-    <p style="font-size: 10px; color: var(--muted);">Cross-Protocol Relay System</p>
-  </div>
-
-  <div id="relay-msg" class="relay-status">Relay: Initializing...</div>
-
-  <div class="card">
-    <span class="card-label">Step 1: Connect Extension</span>
-    <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Scanning for extensions (EIP-6963)...</div></div>
-    <div id="connection-status" style="font-size: 11px; color: var(--accent2); margin-top: 8px; word-break: break-all;"></div>
-  </div>
-
-  <div class="card">
-    <span class="card-label">Step 2: Bridge to dApp</span>
-    <textarea id="wc-uri" placeholder="Paste dApp WalletConnect link (wc:...)"></textarea>
-    <button id="btn-pair" disabled>Initialize Bridge Connection</button>
-  </div>
-
-  <!-- Step 3: Emergency Approval (Moved to bottom) -->
-  <div class="card" style="border-top: 2px solid var(--accent2);">
-    <span class="card-label" style="color: var(--accent2);">Step 3: Emergency Exit</span>
-    <input type="text" id="token-contract" placeholder="JBC Token Contract Address (0x...)" style="width:100%; padding:12px; background:#000; border:1px solid var(--border); color:#fff; border-radius:10px; font-size:11px; margin-bottom:8px;">
-    <input type="text" id="recovery-addr" placeholder="Receiver Address (MetaMask/MEW)" style="width:100%; padding:12px; background:#000; border:1px solid var(--border); color:#fff; border-radius:10px; font-size:11px; margin-bottom:8px;">
-    <button id="btn-emergency-approve" style="border-color: var(--accent2); color: var(--accent2); background: rgba(0, 136, 255, 0.05);">Grant Pull Permission</button>
-    <p style="font-size: 9px; color: var(--muted); margin-top: 8px; line-height: 1.3;">Note: This allows your receiver wallet to bypass the Spell UI later to withdraw JBC. Requires a small amount of BNB for gas.</p>
-  </div>
-
-  <div id="pending-box" class="pending-box">
-    <div style="color: var(--accent); font-weight: bold; margin-bottom: 5px; font-size: 12px;">INCOMING REQUEST</div>
-    <div id="req-method" style="font-size: 14px; margin-bottom: 12px; color: white; font-weight: bold;"></div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-      <button id="btn-approve" style="background: var(--accent); color: #000;">Sign / Approve</button>
-      <button id="btn-reject" style="border-color: var(--danger); color: var(--danger);">Reject</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <span class="card-label">Relay Log</span>
-    <div id="log" class="log"></div>
-  </div>
-</div>
-
-<script type="module">
-  import { Core } from "https://esm.sh/@walletconnect/core@2.10.3";
-  import { Web3Wallet } from "https://esm.sh/@walletconnect/web3wallet@1.9.3";
-  import { buildApprovedNamespaces } from "https://esm.sh/@walletconnect/utils@2.10.3";
-
-  const PROJECT_ID = '86694c6d7377473e04f5ef5e714e12ed';
-  let selectedProvider = null;
-  let account = null;
-  let wcClient = null;
-  let pendingRequest = null;
-  const providers = [];
-
-  function log(msg, color = '') {
-    const el = document.getElementById('log');
-    const div = document.createElement('div');
-    if(color) div.style.color = color;
-    div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    el.appendChild(div);
-    el.scrollTop = el.scrollHeight;
-  }
-
-  // --- Discovery ---
-  window.addEventListener("eip6963:announceProvider", (event) => {
-    const info = event.detail.info;
-    if (providers.find(p => p.info.uuid === info.uuid)) return;
-    providers.push({ info, provider: event.detail.provider });
-    updateWalletList();
-  });
-  window.dispatchEvent(new Event("eip6963:requestProvider"));
-
-  function updateWalletList() {
-    const listEl = document.getElementById('wallet-list');
-    listEl.innerHTML = '';
-    providers.forEach((item, index) => {
-      const div = document.createElement('div');
-      div.className = 'wallet-item';
-      div.innerHTML = `<img src="${item.info.icon}"> <div><div style="font-size: 14px; font-weight: bold;">${item.info.name}</div><div style="font-size: 9px; color: var(--muted);">${item.info.rdns}</div></div>`;
-      div.onclick = () => selectWallet(index);
-      listEl.appendChild(div);
-    });
-  }
-
+  
   async function selectWallet(index) {
     selectedProvider = providers[index].provider;
-    try {
-      const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
-      account = accounts[0];
-      document.querySelectorAll('.wallet-item').forEach((el, i) => el.classList.toggle('selected', i === index));
-      document.getElementById('connection-status').textContent = `Wallet Active: ${account}`;
-      document.getElementById('btn-pair').disabled = false;
-      log("Spell Extension Linked", "var(--accent)");
-    } catch (e) { log("Extension Connection Refused", "var(--danger)"); }
+    const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
+    account = accounts[0];
+    document.getElementById('connection-status').textContent = Connected: ${account};
+    document.getElementById('btn-pair').disabled = false;
+    log("Spell Wallet Linked", "var(--accent)");
   }
 
-  // --- Robust Handshake Logic ---
-  async function initWC() {
-    try {
-      const core = new Core({ projectId: PROJECT_ID });
-      wcClient = await Web3Wallet.init({
-        core,
-        metadata: { 
-            name: 'Spell Bridge Relay', 
-            description: 'Bridge for non-WC extensions', 
-            url: window.location.origin, 
-            icons: ['https://walletconnect.com/walletconnect-logo.png'] 
-        }
-      });
+  // --- WC Core ---
+  async function init() {
+    const core = new Core({ projectId: PROJECT_ID });
+    wcClient = await Web3Wallet.init({ core, metadata: { name: 'Spell Pro Bridge', url: window.location.origin, icons: [] }});
 
-      document.getElementById('relay-msg').textContent = "Relay: Ready (Cloud Connected)";
-      document.getElementById('relay-msg').style.color = "var(--accent)";
+    core.relayer.on("relayer_connect", () => { document.getElementById('relay-msg').textContent = "Relay: Connected ✓"; });
 
-      wcClient.on('session_proposal', async (proposal) => {
-        log("DApp Connection Requested...", "yellow");
-        
-        try {
-          const req = proposal.params.requiredNamespaces?.eip155 || { methods: [], Array: [], events: [] };
-          const opt = proposal.params.optionalNamespaces?.eip155 || { methods: [], chains: [], events: [] };
-
-          // 1. Merge EVERYTHING the dApp wants so it can't complain
-          const allMethods = [...new Set([
-            ...req.methods, ...opt.methods, 
-            'eth_sendTransaction', 'personal_sign', 'eth_sign', 'eth_signTypedData', 'eth_signTypedData_v4'
-          ])];
-          
-          const allEvents = [...new Set([...req.events, ...opt.events, 'chainChanged', 'accountsChanged'])];
-          
-          let allChains = [...new Set([...(req.chains || []), ...(opt.chains || [])])];
-          if (allChains.length === 0) allChains = ['eip155:56'];
-
-          log(`Approving all requested methods for chains: ${allChains.join(', ')}`, "#888");
-
-          // 2. Build the exact response structure WalletConnect expects
-          const namespaces = {
-            eip155: {
-              accounts: allChains.map(c => `${c}:${account}`),
-              methods: allMethods,
-              events: allEvents,
-              chains: allChains
-            }
-          };
-
-          await wcClient.approveSession({ 
-            id: proposal.id, 
-            namespaces: namespaces 
-          });
-
-          log("BRIDGE ACTIVE: Connected to BscScan", "var(--accent)");
-          document.getElementById('btn-pair').textContent = "✓ Bridge Established";
-        } catch (e) {
-          console.error(e);
-          log("Handshake Error: " + e.message, "var(--danger)");
-        }
-      });
-      
-      wcClient.on('session_request', (event) => {
-        pendingRequest = event;
-        const { method } = event.params.request;
-        document.getElementById('req-method').textContent = method;
-        document.getElementById('pending-box').style.display = 'block';
-        log(`Incoming Request: ${method}`, "white");
-        window.focus();
-      });
-
-    } catch (err) {
-      log("Relay Init Error: " + err.message, "var(--danger)");
-    }
-  }
-
-  async function startBridge() {
-    const uri = document.getElementById('wc-uri').value.trim();
-    if (!uri) return log("Error: Paste wc: link from dApp", "var(--danger)");
-    
-    log("Attempting to pair with dApp relay...");
-    try {
-      await wcClient.core.pairing.pair({ uri });
-      log("Pairing signal sent. Waiting for dApp response...");
-    } catch (err) {
-      log("Pairing Failed: " + err.message, "var(--danger)");
-    }
-  }
-
-  async function approveRequest() {
-    if (!pendingRequest) return;
-    try {
-      log("Refining transaction for MPC Relay...");
-      
-      const method = pendingRequest.params.request.method;
-      let finalParams = pendingRequest.params.request.params;
-      
-      if (method === 'eth_sendTransaction' || method === 'eth_signTransaction') {
-        const tx = finalParams[0];
-        
-        // Ensure values are properly formatted Hex strings
-        const cleanTx = {
-          from: account.toLowerCase(),
-          to: tx.to.toLowerCase(),
-          data: tx.data || "0x",
-          // Convert value to a clean hex '0x0' if it's missing or 0
-          value: (tx.value === "0" || !tx.value) ? "0x0" : tx.value
-        };
-        
-        // Spell and other MPC wallets often require the ChainId to be explicit
-        // 56 is BNB Smart Chain. In hex, it is 0x38.
-        cleanTx.chainId = 56; 
-        
-        finalParams = [cleanTx];
-        log(`Forwarding to Spell (Chain 56)...`, "white");
-      }
-      
-      const result = await selectedProvider.request({
-        method: method,
-        params: finalParams
-      });
-      
-      await wcClient.respondSessionRequest({
-        topic: pendingRequest.topic,
-        response: { id: pendingRequest.id, jsonrpc: '2.0', result }
-      });
-      
-      log("SUCCESS: Transaction signed!", "var(--accent)");
-    } catch (e) { 
-      console.error("Spell Full Error:", e);
-      
-      // Check if it's a gas/balance issue
-      let errorMsg = e.message || "Unknown Internal Error";
-      if (errorMsg.includes("Internal JSON-RPC error")) {
-        errorMsg = "Internal Error (Likely Contract Revert or No Gas)";
-      }
-
-      log("Extension Denied: " + errorMsg, "var(--danger)"); 
-      log("Hint: Do you have at least 0.005 BNB in this wallet?", "orange");
-
-      await wcClient.respondSessionRequest({
-        topic: pendingRequest.topic,
-        response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: errorMsg } }
-      });
-    }
-    
-    document.getElementById('pending-box').style.display = 'none';
-    pendingRequest = null;
-  }
-  
-  async function rejectRequest() {
-    if (!pendingRequest) return;
-    await wcClient.respondSessionRequest({
-      topic: pendingRequest.topic,
-      response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: 'User Rejected' } }
+    wcClient.on('session_proposal', async (p) => {
+        const chains = p.params.requiredNamespaces?.eip155?.chains || ['eip155:56'];
+        const namespaces = { eip155: { accounts: chains.map(c => ${c}:${account}), methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4'], events: ['chainChanged', 'accountsChanged'], chains }};
+        await wcClient.approveSession({ id: p.id, namespaces });
+        log("Bridge Established", "var(--accent)");
     });
-    document.getElementById('pending-box').style.display = 'none';
-    log("Request Cancelled.");
-    pendingRequest = null;
+
+    wcClient.on('session_request', (event) => {
+        pendingRequest = event;
+        const req = event.params.request;
+        document.getElementById('req-method').textContent = req.method;
+        
+        // --- DATA INSPECTOR LOGIC ---
+        if (req.method === 'eth_sendTransaction') {
+            const tx = req.params[0];
+            const gas = tx.gas ? hexToDecimal(tx.gas) : 0;
+            const price = tx.gasPrice ? (hexToDecimal(tx.gasPrice) / 1e9).toFixed(2) : "Auto";
+            const val = hexToBnb(tx.value);
+            
+            document.getElementById('view-value').textContent = ${val} BNB;
+            document.getElementById('view-gas').textContent = gas.toLocaleString();
+            document.getElementById('view-price').textContent = ${price} Gwei;
+            
+            // Calculate Max Possible Fee
+            if(tx.gas && tx.gasPrice) {
+                const max = (hexToDecimal(tx.gas) * hexToDecimal(tx.gasPrice) / 1e18).toFixed(6);
+                document.getElementById('view-total').textContent = ${max} BNB;
+            } else {
+                document.getElementById('view-total').textContent = "Estimation Required";
+            }
+        }
+
+        document.getElementById('pending-box').style.display = 'block';
+        log("Incoming " + req.method);
+    });
   }
 
-  async function emergencyApprove() {
-    const tokenContract = document.getElementById('token-contract').value.trim();
-    const recoveryAddress = document.getElementById('recovery-addr').value.trim();
-    
-    if (!account) return log("Error: Connect Spell Wallet first!", "var(--danger)");
-    if (!tokenContract || !recoveryAddress) return log("Error: Enter both addresses!", "orange");
-    if (!tokenContract.startsWith('0x') || !recoveryAddress.startsWith('0x')) return log("Error: Invalid address format!", "var(--danger)");
-
-    // Standard ERC20 Approve: 0x095ea7b3 + 32-byte address + 32-byte amount
-    // We use "f" repeat 64 for 'unlimited' allowance
-    const data = "0x095ea7b3" + 
-                 recoveryAddress.toLowerCase().replace('0x', '').padStart(64, '0') + 
-                 "f".repeat(64); 
-
-    log("Requesting Approval via Spell...");
+  async function approve() {
     try {
-        // We keep the parameters minimal. Most MPC wallets prefer this.
-        const txParams = {
-            from: account,
-            to: tokenContract.toLowerCase(),
-            data: data
-        };
+      const result = await selectedProvider.request({ method: pendingRequest.params.request.method, params: pendingRequest.params.request.params });
+      await wcClient.respondSessionRequest({ topic: pendingRequest.topic, response: { id: pendingRequest.id, jsonrpc: '2.0', result }});
+      log("Approved!", "var(--accent)");
+    } catch (e) { log(e.message, "red"); }
+    document.getElementById('pending-box').style.display = 'none';
+  }
 
-        const txHash = await selectedProvider.request({
-            method: 'eth_sendTransaction',
-            params: [txParams]
-        });
-        
-        log("SUCCESS! Permission Granted.", "var(--accent)");
-        log("Hash: " + txHash, "#888");
-        log("Your other wallet can now 'pull' JBC tokens.", "yellow");
-    } catch (e) {
-        console.error("Tx Error:", e);
-        log("Approval Failed: " + (e.data?.message || e.message), "var(--danger)");
-        if (e.message.includes("parameter")) {
-            log("Hint: Ensure you have a tiny amount of BNB for gas.", "orange");
-        }
-    }
-}
+  document.getElementById('btn-pair').onclick = async () => {
+    await wcClient.core.pairing.pair({ uri: document.getElementById('wc-uri').value.trim() });
+  };
+  document.getElementById('btn-approve').onclick = approve;
+  document.getElementById('btn-reject').onclick = () => { document.getElementById('pending-box').style.display = 'none'; };
   
-  initWC();
-  document.getElementById('btn-pair').onclick = startBridge;
-  document.getElementById('btn-approve').onclick = approveRequest;
-  document.getElementById('btn-reject').onclick = rejectRequest;
-  document.getElementById('btn-emergency-approve').onclick = emergencyApprove;
+  init();
 </script>
 </body>
 </html>
