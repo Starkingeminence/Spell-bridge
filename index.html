@@ -12,19 +12,19 @@
   .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 16px; margin-top: 40px; }
   .header { text-align: center; margin-bottom: 10px; }
   .header h1 { font-family: 'Syne', sans-serif; font-size: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; position: relative; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
   .card-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: block; }
-  .wallet-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; margin-bottom: 8px; transition: 0.2s; }
+  .wallet-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; margin-bottom: 8px; border: 1px solid transparent; }
   .wallet-item:hover { border-color: var(--accent); }
   .wallet-item img { width: 28px; height: 28px; border-radius: 6px; }
-  .selected { border-color: var(--accent); background: rgba(0,255,136,0.1); }
-  button { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-weight: bold; cursor: pointer; margin-top: 10px; }
+  .selected { border-color: var(--accent) !important; background: rgba(0,255,136,0.1) !important; }
+  button { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+  button:hover:not(:disabled) { background: var(--accent); color: #000; }
   button:disabled { opacity: 0.3; cursor: not-allowed; }
-  textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 70px; margin-top: 10px; resize: none; }
-  .log { font-size: 10px; color: var(--muted); max-height: 150px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; }
-  .pending-box { display: none; background: #161b22; border: 1px solid var(--accent2); padding: 15px; border-radius: 12px; margin-top: 15px; }
-  .data-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: #ccc; }
-  .data-val { color: white; font-weight: bold; }
+  textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 80px; margin-top: 10px; resize: none; }
+  .log { font-size: 10px; color: var(--muted); max-height: 200px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; white-space: pre-wrap; }
+  .pending-box { display: none; background: #1a1a25; border: 1px solid var(--accent2); padding: 15px; border-radius: 12px; margin-top: 15px; }
+  .status-tag { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: #222; margin-bottom: 5px; display: inline-block; }
 </style>
 </head>
 <body>
@@ -32,115 +32,150 @@
 <div class="container">
   <div class="header">
     <h1>Spell Bridge</h1>
-    <p style="font-size: 10px; color: var(--muted);">Relay Status: <span id="relay-msg">Disconnected</span></p>
+    <div id="relay-msg" class="status-tag" style="color: var(--danger);">Relay: Initializing...</div>
   </div>
 
   <div class="card">
     <span class="card-label">Step 1: Connect Extension</span>
-    <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Scanning for Spell...</div></div>
+    <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Searching for Spell Wallet...</div></div>
     <div id="connection-status" style="font-size: 11px; color: var(--accent); margin-top: 8px;"></div>
   </div>
 
   <div class="card">
     <span class="card-label">Step 2: Connect dApp</span>
-    <textarea id="wc-uri" placeholder="Paste wc: link from dApp..."></textarea>
+    <textarea id="wc-uri" placeholder="Paste wc: link from dApp (e.g. Launchgate)"></textarea>
     <button id="btn-pair" disabled>Initialize Bridge</button>
   </div>
 
   <div id="pending-box" class="pending-box">
     <div style="color: var(--accent2); font-weight: bold; font-size: 12px; margin-bottom: 10px;">INCOMING REQUEST</div>
-    <div id="req-method" style="font-size: 15px; color: white; margin-bottom: 12px;"></div>
+    <div id="req-method" style="font-size: 14px; color: white; margin-bottom: 15px; font-weight: bold;"></div>
     
-    <!-- DATA INSPECTOR -->
-    <div style="background: #000; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333;">
-        <div class="data-row"><span>TX Value:</span> <span id="view-value" class="data-val">-</span></div>
-        <div class="data-row"><span>Gas Limit:</span> <span id="view-gas" class="data-val">-</span></div>
-        <div class="data-row"><span>Gas Price:</span> <span id="view-price" class="data-val">-</span></div>
-        <div style="height:1px; background:#222; margin: 8px 0;"></div>
-        <div class="data-row" style="font-size: 12px;"><span>Proof of Funds Needed:</span> <span id="view-total" style="color:var(--accent);">0.00 BNB</span></div>
+    <div id="tx-details" style="background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 10px; color: #888; margin-bottom: 15px;">
+        <div style="display:flex; justify-content: space-between;"><span>Gas Fee Limit:</span> <span id="view-total" style="color:var(--accent);">Calculating...</span></div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-      <button id="btn-approve" style="background: var(--accent2); border:none; color:white;">Approve</button>
+    <div style="grid-template-columns: 1fr 1fr; display: grid; gap: 10px;">
+      <button id="btn-approve" style="background: var(--accent2); color: white; border: none;">Approve</button>
       <button id="btn-reject" style="border-color: var(--danger); color: var(--danger);">Reject</button>
     </div>
   </div>
 
   <div class="card">
-    <span class="card-label">Activity Log</span>
-    <div id="log" class="log"></div>
+    <span class="card-label">Activity Log / Debug</span>
+    <div id="log" class="log">Initializing systems...</div>
   </div>
 </div>
 
 <script type="module">
-  import { Core } from "https://esm.sh/@walletconnect/core@2.10.3";
-  import { Web3Wallet } from "https://esm.sh/@walletconnect/web3wallet@1.9.3";
+  // Using reliable CDN versions
+  import { Core } from "https://cdn.jsdelivr.net/npm/@walletconnect/core@2.10.3/+esm";
+  import { Web3Wallet } from "https://cdn.jsdelivr.net/npm/@walletconnect/web3wallet@1.9.3/+esm";
 
   const PROJECT_ID = '86694c6d7377473e04f5ef5e714e12ed';
   let selectedProvider = null, account = null, wcClient = null, pendingRequest = null, providers = [];
 
   function log(msg, color = '') {
     const el = document.getElementById('log');
+    if (el.textContent.includes("Initializing systems...")) el.textContent = "";
     const div = document.createElement('div');
     if(color) div.style.color = color;
-    div.textContent = `> ${msg}`;
+    div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     el.appendChild(div);
     el.scrollTop = el.scrollHeight;
   }
 
-  // --- Robust EIP-6963 Discovery ---
+  // --- 1. Find the Wallet (Multiple Methods) ---
   function updateWalletList() {
     const listEl = document.getElementById('wallet-list');
     listEl.innerHTML = '';
+    
+    if (providers.length === 0) {
+        listEl.innerHTML = '<div style="font-size: 12px; color: var(--danger);">No wallets found. Is Spell Extension unlocked?</div>';
+        return;
+    }
+
     providers.forEach((item, index) => {
       const div = document.createElement('div');
       div.className = 'wallet-item' + (selectedProvider === item.provider ? ' selected' : '');
-      div.innerHTML = `<img src="${item.info.icon}"> <div><b>${item.info.name}</b></div>`;
+      div.innerHTML = `<img src="${item.info.icon || 'https://walletconnect.com/walletconnect-logo.png'}"> <div><b>${item.info.name}</b></div>`;
       div.onclick = () => selectWallet(index);
       listEl.appendChild(div);
     });
   }
 
+  // Method A: Modern EIP-6963
   window.addEventListener("eip6963:announceProvider", (e) => {
     if (providers.find(p => p.info.uuid === e.detail.info.uuid)) return;
     providers.push({ info: e.detail.info, provider: e.detail.provider });
+    log(`Found extension: ${e.detail.info.name}`);
     updateWalletList();
   });
   
-  // Repeatedly ping for the extension (fixes mobile issues)
-  const discoveryInterval = setInterval(() => {
-    window.dispatchEvent(new Event("eip6963:requestProvider"));
-    if(providers.length > 0 && selectedProvider) clearInterval(discoveryInterval);
-  }, 1000);
+  // Method B: Legacy Fallback (If Spell is the injected provider)
+  if (window.ethereum && !providers.find(p => p.info.name === "Injected")) {
+      providers.push({ 
+          info: { name: "Spell (Injected)", icon: "", uuid: "injected" }, 
+          provider: window.ethereum 
+      });
+      updateWalletList();
+  }
+
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
 
   async function selectWallet(index) {
     selectedProvider = providers[index].provider;
     updateWalletList();
     try {
+      log("Requesting account access...");
       const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
       account = accounts[0];
       document.getElementById('connection-status').textContent = `Connected: ${account}`;
       document.getElementById('btn-pair').disabled = false;
-      log("Wallet Linked: " + account.substring(0,8)..., "var(--accent)");
-    } catch (e) { log("Connection Failed", "red"); }
+      log("Spell Wallet Connected!", "var(--accent)");
+    } catch (e) { 
+        log("Access Denied: " + e.message, "var(--danger)"); 
+    }
   }
 
-  // --- WalletConnect Logic ---
+  // --- 2. Initialize WalletConnect ---
   async function init() {
     try {
+      log("Connecting to WalletConnect Cloud...");
       const core = new Core({ projectId: PROJECT_ID });
-      wcClient = await Web3Wallet.init({ core, metadata: { name: 'Spell Bridge', url: window.location.origin, icons: [] }});
+      
+      wcClient = await Web3Wallet.init({ 
+        core, 
+        metadata: { 
+            name: 'Spell Bridge Relay', 
+            description: 'MPC Bridge', 
+            url: window.location.origin, 
+            icons: [] 
+        }
+      });
 
       core.relayer.on("relayer_connect", () => {
-          document.getElementById('relay-msg').textContent = "Connected ✓";
+          document.getElementById('relay-msg').textContent = "Relay: Connected ✓";
           document.getElementById('relay-msg').style.color = "var(--accent)";
+          log("Relay connection stable", "var(--accent)");
       });
 
       wcClient.on('session_proposal', async (p) => {
-        const chains = p.params.requiredNamespaces?.eip155?.chains || ['eip155:56'];
-        const namespaces = { eip155: { accounts: chains.map(c => `${c}:${account}`), methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4'], events: ['chainChanged', 'accountsChanged'], chains }};
-        await wcClient.approveSession({ id: p.id, namespaces });
-        log("Bridge Established with dApp", "var(--accent)");
+        log("DApp Connection Request received", "var(--accent2)");
+        try {
+          const chains = p.params.requiredNamespaces?.eip155?.chains || ['eip155:56'];
+          const namespaces = { 
+            eip155: { 
+                accounts: chains.map(c => `${c}:${account}`), 
+                methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'eth_sign'], 
+                events: ['chainChanged', 'accountsChanged'], 
+                chains 
+            }
+          };
+          await wcClient.approveSession({ id: p.id, namespaces });
+          log("BRIDGE ACTIVE", "var(--accent)");
+          document.getElementById('btn-pair').textContent = "✓ Connected to dApp";
+        } catch (e) { log("Handshake failed: " + e.message, "red"); }
       });
 
       wcClient.on('session_request', (event) => {
@@ -148,48 +183,61 @@
         const req = event.params.request;
         document.getElementById('req-method').textContent = req.method;
         
-        // --- DATA INSPECTOR ---
-        if (req.method === 'eth_sendTransaction') {
-            const tx = req.params[0];
-            const gas = tx.gas ? parseInt(tx.gas, 16) : 0;
-            const price = tx.gasPrice ? (parseInt(tx.gasPrice, 16) / 1e9).toFixed(2) : "Auto";
-            const val = tx.value ? (parseInt(tx.value, 16) / 1e18).toFixed(6) : "0";
-            
-            document.getElementById('view-value').textContent = `${val} BNB`;
-            document.getElementById('view-gas').textContent = gas.toLocaleString();
-            document.getElementById('view-price').textContent = `${price} Gwei`;
-            
-            if(tx.gas && tx.gasPrice) {
-                const max = (parseInt(tx.gas, 16) * parseInt(tx.gasPrice, 16) / 1e18).toFixed(6);
-                document.getElementById('view-total').textContent = `${max} BNB`;
-            } else {
-                document.getElementById('view-total').textContent = "Calculating...";
-            }
+        if (req.method === 'eth_sendTransaction' && req.params[0].gas && req.params[0].gasPrice) {
+            const gas = parseInt(req.params[0].gas, 16);
+            const price = parseInt(req.params[0].gasPrice, 16);
+            const max = (gas * price / 1e18).toFixed(6);
+            document.getElementById('view-total').textContent = `${max} BNB`;
         }
 
         document.getElementById('pending-box').style.display = 'block';
-        log("New Request: " + req.method);
+        log("Incoming Transaction Request", "yellow");
       });
-    } catch (e) { log("Init Error: " + e.message, "red"); }
+
+    } catch (e) { 
+        log("Initialization ERROR: " + e.message, "var(--danger)");
+        console.error(e);
+    }
   }
 
+  // --- 3. Buttons ---
   document.getElementById('btn-pair').onclick = async () => {
     const uri = document.getElementById('wc-uri').value.trim();
-    await wcClient.core.pairing.pair({ uri });
-    log("Pairing initiated...");
+    if (!uri) return log("Error: Paste wc: link first", "orange");
+    log("Pairing with dApp...");
+    try {
+        await wcClient.core.pairing.pair({ uri });
+    } catch (e) { log("Pairing Error: " + e.message, "red"); }
   };
 
   document.getElementById('btn-approve').onclick = async () => {
     try {
-      const result = await selectedProvider.request({ method: pendingRequest.params.request.method, params: pendingRequest.params.request.params });
-      await wcClient.respondSessionRequest({ topic: pendingRequest.topic, response: { id: pendingRequest.id, jsonrpc: '2.0', result }});
-      log("Success!", "var(--accent)");
-    } catch (e) { log(e.message, "red"); }
+      log("Forwarding to Extension...");
+      const result = await selectedProvider.request({ 
+          method: pendingRequest.params.request.method, 
+          params: pendingRequest.params.request.params 
+      });
+      await wcClient.respondSessionRequest({ 
+          topic: pendingRequest.topic, 
+          response: { id: pendingRequest.id, jsonrpc: '2.0', result }
+      });
+      log("Transaction Success!", "var(--accent)");
+    } catch (e) { 
+        log("Error: " + e.message, "red");
+        await wcClient.respondSessionRequest({ 
+          topic: pendingRequest.topic, 
+          response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: e.message } }
+        });
+    }
     document.getElementById('pending-box').style.display = 'none';
   };
 
-  document.getElementById('btn-reject').onclick = () => { document.getElementById('pending-box').style.display = 'none'; };
+  document.getElementById('btn-reject').onclick = () => { 
+      document.getElementById('pending-box').style.display = 'none'; 
+      log("Request Rejected");
+  };
 
+  // Run
   init();
 </script>
 </body>
