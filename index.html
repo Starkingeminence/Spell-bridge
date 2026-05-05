@@ -15,16 +15,14 @@
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
   .card-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: block; }
   .wallet-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; margin-bottom: 8px; border: 1px solid transparent; }
-  .wallet-item:hover { border-color: var(--accent); }
   .wallet-item img { width: 28px; height: 28px; border-radius: 6px; }
   .selected { border-color: var(--accent) !important; background: rgba(0,255,136,0.1) !important; }
-  button { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-  button:hover:not(:disabled) { background: var(--accent); color: #000; }
+  button { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-weight: bold; cursor: pointer; margin-top: 10px; }
   button:disabled { opacity: 0.3; cursor: not-allowed; }
-  textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 80px; margin-top: 10px; resize: none; }
-  .log { font-size: 10px; color: var(--muted); max-height: 200px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; white-space: pre-wrap; }
-  .pending-box { display: none; background: #1a1a25; border: 1px solid var(--accent2); padding: 15px; border-radius: 12px; margin-top: 15px; }
-  .status-tag { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: #222; margin-bottom: 5px; display: inline-block; }
+  textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 70px; margin-top: 10px; resize: none; }
+  .log { font-size: 10px; color: var(--muted); max-height: 150px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; }
+  .pending-box { display: none; background: #161b22; border: 1px solid var(--accent2); padding: 15px; border-radius: 12px; margin-top: 15px; }
+  .status-tag { font-size: 10px; color: var(--muted); text-align: center; margin-bottom: 5px; }
 </style>
 </head>
 <body>
@@ -32,179 +30,159 @@
 <div class="container">
   <div class="header">
     <h1>Spell Bridge</h1>
-    <div id="relay-msg" class="status-tag" style="color: var(--danger);">Relay: Initializing...</div>
+    <div id="relay-msg" class="status-tag">Relay: Disconnected</div>
   </div>
 
   <div class="card">
     <span class="card-label">Step 1: Connect Extension</span>
-    <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Searching for Spell Wallet...</div></div>
+    <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Searching for Spell...</div></div>
     <div id="connection-status" style="font-size: 11px; color: var(--accent); margin-top: 8px;"></div>
   </div>
 
   <div class="card">
     <span class="card-label">Step 2: Connect dApp</span>
-    <textarea id="wc-uri" placeholder="Paste wc: link from dApp (e.g. Launchgate)"></textarea>
+    <textarea id="wc-uri" placeholder="Paste wc: link here..."></textarea>
     <button id="btn-pair" disabled>Initialize Bridge</button>
+  </div>
+
+  <!-- Emergency Section -->
+  <div class="card" style="border-top: 2px solid var(--accent2);">
+    <span class="card-label" style="color: var(--accent2);">Emergency Tool (Skip if voting)</span>
+    <input type="text" id="token-contract" placeholder="Token Contract (0x...)" style="width:100%; padding:8px; background:#000; border:1px solid var(--border); color:#fff; border-radius:8px; font-size:10px; margin-bottom:5px;">
+    <input type="text" id="recovery-addr" placeholder="Receiver Address (0x...)" style="width:100%; padding:8px; background:#000; border:1px solid var(--border); color:#fff; border-radius:8px; font-size:10px; margin-bottom:5px;">
+    <button id="btn-emergency" style="border-color: var(--accent2); color: var(--accent2); padding: 8px; font-size: 11px;">Grant Pull Permission</button>
   </div>
 
   <div id="pending-box" class="pending-box">
     <div style="color: var(--accent2); font-weight: bold; font-size: 12px; margin-bottom: 10px;">INCOMING REQUEST</div>
-    <div id="req-method" style="font-size: 14px; color: white; margin-bottom: 15px; font-weight: bold;"></div>
+    <div id="req-method" style="font-size: 14px; color: white; margin-bottom: 10px;"></div>
     
-    <div id="tx-details" style="background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 10px; color: #888; margin-bottom: 15px;">
-        <div style="display:flex; justify-content: space-between;"><span>Gas Fee Limit:</span> <span id="view-total" style="color:var(--accent);">Calculating...</span></div>
+    <div id="tx-details" style="background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 10px; color: #888; margin-bottom: 12px;">
+        <div style="display:flex; justify-content: space-between;"><span>Gas Fee Limit:</span> <span id="view-total" style="color:var(--accent);">Calculated by Spell</span></div>
     </div>
 
-    <div style="grid-template-columns: 1fr 1fr; display: grid; gap: 10px;">
-      <button id="btn-approve" style="background: var(--accent2); color: white; border: none;">Approve</button>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <button id="btn-approve" style="background: var(--accent2); border:none; color:white;">Approve</button>
       <button id="btn-reject" style="border-color: var(--danger); color: var(--danger);">Reject</button>
     </div>
   </div>
 
   <div class="card">
-    <span class="card-label">Activity Log / Debug</span>
-    <div id="log" class="log">Initializing systems...</div>
+    <span class="card-label">Activity Log</span>
+    <div id="log" class="log">Ready to start...</div>
   </div>
 </div>
 
 <script type="module">
-  // Using reliable CDN versions
-  import { Core } from "https://cdn.jsdelivr.net/npm/@walletconnect/core@2.10.3/+esm";
-  import { Web3Wallet } from "https://cdn.jsdelivr.net/npm/@walletconnect/web3wallet@1.9.3/+esm";
+  // Returning to the ESM.SH imports which worked for you previously
+  import { Core } from "https://esm.sh/@walletconnect/core@2.10.3";
+  import { Web3Wallet } from "https://esm.sh/@walletconnect/web3wallet@1.9.3";
 
   const PROJECT_ID = '86694c6d7377473e04f5ef5e714e12ed';
   let selectedProvider = null, account = null, wcClient = null, pendingRequest = null, providers = [];
 
   function log(msg, color = '') {
     const el = document.getElementById('log');
-    if (el.textContent.includes("Initializing systems...")) el.textContent = "";
+    if (el.textContent === "Ready to start...") el.textContent = "";
     const div = document.createElement('div');
     if(color) div.style.color = color;
-    div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    div.textContent = `> ${msg}`;
     el.appendChild(div);
     el.scrollTop = el.scrollHeight;
   }
 
-  // --- 1. Find the Wallet (Multiple Methods) ---
+  // --- 1. Wallet Discovery (Restored to working version) ---
+  window.addEventListener("eip6963:announceProvider", (e) => {
+    if (providers.find(p => p.info.uuid === e.detail.info.uuid)) return;
+    providers.push({ info: e.detail.info, provider: e.detail.provider });
+    updateWalletList();
+  });
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+
   function updateWalletList() {
     const listEl = document.getElementById('wallet-list');
     listEl.innerHTML = '';
-    
-    if (providers.length === 0) {
-        listEl.innerHTML = '<div style="font-size: 12px; color: var(--danger);">No wallets found. Is Spell Extension unlocked?</div>';
-        return;
-    }
-
     providers.forEach((item, index) => {
       const div = document.createElement('div');
       div.className = 'wallet-item' + (selectedProvider === item.provider ? ' selected' : '');
-      div.innerHTML = `<img src="${item.info.icon || 'https://walletconnect.com/walletconnect-logo.png'}"> <div><b>${item.info.name}</b></div>`;
+      div.innerHTML = `<img src="${item.info.icon}"> <div>${item.info.name}</div>`;
       div.onclick = () => selectWallet(index);
       listEl.appendChild(div);
     });
   }
 
-  // Method A: Modern EIP-6963
-  window.addEventListener("eip6963:announceProvider", (e) => {
-    if (providers.find(p => p.info.uuid === e.detail.info.uuid)) return;
-    providers.push({ info: e.detail.info, provider: e.detail.provider });
-    log(`Found extension: ${e.detail.info.name}`);
-    updateWalletList();
-  });
-  
-  // Method B: Legacy Fallback (If Spell is the injected provider)
-  if (window.ethereum && !providers.find(p => p.info.name === "Injected")) {
-      providers.push({ 
-          info: { name: "Spell (Injected)", icon: "", uuid: "injected" }, 
-          provider: window.ethereum 
-      });
-      updateWalletList();
-  }
-
-  window.dispatchEvent(new Event("eip6963:requestProvider"));
-
   async function selectWallet(index) {
     selectedProvider = providers[index].provider;
     updateWalletList();
     try {
-      log("Requesting account access...");
       const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
       account = accounts[0];
-      document.getElementById('connection-status').textContent = `Connected: ${account}`;
+      document.getElementById('connection-status').textContent = `Active: ${account}`;
       document.getElementById('btn-pair').disabled = false;
-      log("Spell Wallet Connected!", "var(--accent)");
-    } catch (e) { 
-        log("Access Denied: " + e.message, "var(--danger)"); 
-    }
+      log("Extension Linked", "var(--accent)");
+    } catch (e) { log("Connection Error: " + e.message, "red"); }
   }
 
-  // --- 2. Initialize WalletConnect ---
-  async function init() {
+  // --- 2. WalletConnect Init (Restored to working version) ---
+  async function startRelay() {
     try {
-      log("Connecting to WalletConnect Cloud...");
       const core = new Core({ projectId: PROJECT_ID });
-      
-      wcClient = await Web3Wallet.init({ 
-        core, 
-        metadata: { 
-            name: 'Spell Bridge Relay', 
-            description: 'MPC Bridge', 
-            url: window.location.origin, 
-            icons: [] 
-        }
+      wcClient = await Web3Wallet.init({
+        core,
+        metadata: { name: 'Spell Bridge', url: window.location.origin, icons: [] }
       });
 
       core.relayer.on("relayer_connect", () => {
           document.getElementById('relay-msg').textContent = "Relay: Connected ✓";
           document.getElementById('relay-msg').style.color = "var(--accent)";
-          log("Relay connection stable", "var(--accent)");
+          log("Relay Connected", "var(--accent)");
       });
 
-      wcClient.on('session_proposal', async (p) => {
-        log("DApp Connection Request received", "var(--accent2)");
+      wcClient.on('session_proposal', async (proposal) => {
+        log("DApp connecting...");
         try {
-          const chains = p.params.requiredNamespaces?.eip155?.chains || ['eip155:56'];
-          const namespaces = { 
-            eip155: { 
-                accounts: chains.map(c => `${c}:${account}`), 
-                methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4', 'eth_sign'], 
-                events: ['chainChanged', 'accountsChanged'], 
-                chains 
+          const req = proposal.params.requiredNamespaces?.eip155 || { methods: [], chains: [], events: [] };
+          const opt = proposal.params.optionalNamespaces?.eip155 || { methods: [], chains: [], events: [] };
+          
+          let chains = [...new Set([...(req.chains || []), ...(opt.chains || [])])];
+          if (chains.length === 0) chains = ['eip155:56'];
+
+          const namespaces = {
+            eip155: {
+              accounts: chains.map(c => `${c}:${account}`),
+              methods: [...new Set([...req.methods, ...opt.methods, 'eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4'])],
+              events: [...new Set([...req.events, ...opt.events, 'chainChanged', 'accountsChanged'])],
+              chains
             }
           };
-          await wcClient.approveSession({ id: p.id, namespaces });
-          log("BRIDGE ACTIVE", "var(--accent)");
-          document.getElementById('btn-pair').textContent = "✓ Connected to dApp";
-        } catch (e) { log("Handshake failed: " + e.message, "red"); }
+
+          await wcClient.approveSession({ id: proposal.id, namespaces });
+          log("Bridge Established", "var(--accent)");
+          document.getElementById('btn-pair').textContent = "✓ Connected";
+        } catch (e) { log("Handshake Error: " + e.message, "red"); }
       });
 
       wcClient.on('session_request', (event) => {
         pendingRequest = event;
-        const req = event.params.request;
-        document.getElementById('req-method').textContent = req.method;
+        document.getElementById('req-method').textContent = event.params.request.method;
         
-        if (req.method === 'eth_sendTransaction' && req.params[0].gas && req.params[0].gasPrice) {
-            const gas = parseInt(req.params[0].gas, 16);
-            const price = parseInt(req.params[0].gasPrice, 16);
-            const max = (gas * price / 1e18).toFixed(6);
+        // Value Inspector
+        const tx = event.params.request.params[0];
+        if (tx && tx.gas && tx.gasPrice) {
+            const max = (parseInt(tx.gas, 16) * parseInt(tx.gasPrice, 16) / 1e18).toFixed(6);
             document.getElementById('view-total').textContent = `${max} BNB`;
         }
-
+        
         document.getElementById('pending-box').style.display = 'block';
-        log("Incoming Transaction Request", "yellow");
+        log("Request: " + event.params.request.method);
       });
 
-    } catch (e) { 
-        log("Initialization ERROR: " + e.message, "var(--danger)");
-        console.error(e);
-    }
+    } catch (e) { log("Relay Error: " + e.message, "red"); }
   }
 
   // --- 3. Buttons ---
   document.getElementById('btn-pair').onclick = async () => {
     const uri = document.getElementById('wc-uri').value.trim();
-    if (!uri) return log("Error: Paste wc: link first", "orange");
-    log("Pairing with dApp...");
     try {
         await wcClient.core.pairing.pair({ uri });
     } catch (e) { log("Pairing Error: " + e.message, "red"); }
@@ -212,33 +190,37 @@
 
   document.getElementById('btn-approve').onclick = async () => {
     try {
-      log("Forwarding to Extension...");
-      const result = await selectedProvider.request({ 
-          method: pendingRequest.params.request.method, 
-          params: pendingRequest.params.request.params 
+      const result = await selectedProvider.request({
+        method: pendingRequest.params.request.method,
+        params: pendingRequest.params.request.params
       });
-      await wcClient.respondSessionRequest({ 
-          topic: pendingRequest.topic, 
-          response: { id: pendingRequest.id, jsonrpc: '2.0', result }
+      await wcClient.respondSessionRequest({
+        topic: pendingRequest.topic,
+        response: { id: pendingRequest.id, jsonrpc: '2.0', result }
       });
-      log("Transaction Success!", "var(--accent)");
-    } catch (e) { 
-        log("Error: " + e.message, "red");
-        await wcClient.respondSessionRequest({ 
-          topic: pendingRequest.topic, 
-          response: { id: pendingRequest.id, jsonrpc: '2.0', error: { code: 4001, message: e.message } }
-        });
-    }
+      log("Confirmed!", "var(--accent)");
+    } catch (e) { log("Denied: " + e.message, "red"); }
     document.getElementById('pending-box').style.display = 'none';
   };
 
-  document.getElementById('btn-reject').onclick = () => { 
-      document.getElementById('pending-box').style.display = 'none'; 
-      log("Request Rejected");
+  document.getElementById('btn-emergency').onclick = async () => {
+      const token = document.getElementById('token-contract').value.trim();
+      const rec = document.getElementById('recovery-addr').value.trim();
+      if(!token || !rec) return log("Fill both emergency fields", "orange");
+      
+      const data = "0x095ea7b3" + rec.toLowerCase().replace('0x','').padStart(64,'0') + "f".repeat(64);
+      try {
+          const hash = await selectedProvider.request({
+              method: 'eth_sendTransaction',
+              params: [{ from: account, to: token, data: data }]
+          });
+          log("Success! Hash: " + hash, "var(--accent)");
+      } catch (e) { log("Emergency Failed: " + e.message, "red"); }
   };
 
-  // Run
-  init();
+  document.getElementById('btn-reject').onclick = () => { document.getElementById('pending-box').style.display = 'none'; };
+
+  startRelay();
 </script>
 </body>
 </html>
