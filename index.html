@@ -3,93 +3,2896 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b1020">
-  <title>Spell Bridge — self-custody WalletConnect bridge</title>
+  <meta name="theme-color" content="#090d18">
+  <meta
+    name="description"
+    content="Connect your browser wallet to WalletConnect dApps and review requests before approving them in your wallet."
+  >
+  <title>Spell Bridge — Self-custody wallet bridge</title>
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&display=swap');
-    :root { --bg:#090d18; --surface:#111827; --surface2:#171f31; --line:#2a354d; --text:#f4f7ff; --muted:#a6b1c8; --brand:#6ee7b7; --blue:#7dd3fc; --danger:#ff879b; --warn:#fcd34d; --focus:#fff; }
-    * { box-sizing:border-box } body { margin:0; background:radial-gradient(circle at 15% -5%,#17345a 0,transparent 32rem),var(--bg); color:var(--text); font:14px/1.5 Manrope,system-ui,sans-serif; min-height:100vh }
-    .app { width:min(1120px,calc(100% - 32px)); margin:0 auto; padding:28px 0 52px } header { display:flex; justify-content:space-between; align-items:center; gap:20px; border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:26px }.brand { font-size:22px;font-weight:800;letter-spacing:-.7px }.brand span { color:var(--brand) }.tag { color:var(--muted);font:12px 'DM Mono',monospace }.status { color:var(--muted);font-size:12px }.dot { display:inline-block;width:8px;height:8px;border-radius:50%;background:#64748b;margin-right:6px }.dot.on {background:var(--brand);box-shadow:0 0 12px var(--brand)}
-    .grid { display:grid;grid-template-columns:310px 1fr;gap:18px }.card { background:linear-gradient(145deg,rgba(23,31,49,.96),rgba(15,21,35,.96));border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 18px 35px #0002 }.card h2 {font-size:13px;text-transform:uppercase;letter-spacing:1.3px;margin:0 0 14px;color:var(--muted)} .card h3 {font-size:16px;margin:0 0 12px}.stack {display:grid;gap:18px}.split {display:grid;grid-template-columns:1fr 1fr;gap:18px}.wallet {display:flex;align-items:center;gap:10px;padding:11px;border:1px solid transparent;border-radius:10px;cursor:pointer;background:#0c1220;margin-bottom:8px}.wallet:hover,.wallet.selected {border-color:var(--brand);background:#123027}.wallet img {width:28px;height:28px;border-radius:7px;background:#233}.wallet b {font-size:13px}.wallet small {color:var(--muted);display:block;font-size:11px}.empty {color:var(--muted);font-size:13px}.account {font:12px 'DM Mono',monospace;word-break:break-all;color:var(--blue)}
-    label {display:block;color:var(--muted);font-size:12px;font-weight:700;margin:11px 0 5px} input,select,textarea {width:100%;border:1px solid var(--line);background:#090e19;color:var(--text);border-radius:9px;padding:11px;font:13px 'DM Mono',monospace}textarea {min-height:74px;resize:vertical} input:focus,select:focus,textarea:focus,button:focus-visible {outline:3px solid var(--focus);outline-offset:2px} button {border:1px solid var(--brand);background:var(--brand);color:#052017;border-radius:9px;padding:10px 13px;font:700 13px Manrope,sans-serif;cursor:pointer}button:hover {filter:brightness(1.08)}button:disabled {opacity:.42;cursor:not-allowed}button.secondary {background:transparent;color:var(--brand)}button.danger {background:transparent;color:var(--danger);border-color:var(--danger)}button + button {margin-left:7px}.actions {display:flex;justify-content:flex-end;gap:8px;margin-top:15px}.actions button+button {margin-left:0}.notice {font-size:12px;color:var(--muted);padding:10px;border-left:3px solid var(--blue);background:#0c1726;border-radius:3px;margin-top:12px}.warning {border-color:var(--warn);color:#fde9a6}.request {border-color:var(--blue);background:linear-gradient(145deg,#11233a,#101927)}.request[hidden] {display:none}.method {font:700 19px 'DM Mono',monospace;color:var(--blue);word-break:break-word}.rows {margin-top:13px;border-top:1px solid var(--line)}.row {display:grid;grid-template-columns:110px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12px}.row span:first-child{color:var(--muted)}.row code {overflow-wrap:anywhere;color:#dbeafe;font:11px 'DM Mono',monospace}.log {max-height:210px;overflow:auto;font:12px/1.6 'DM Mono',monospace;color:var(--muted)}.log div{border-bottom:1px solid #ffffff09;padding:4px 0}.success{color:var(--brand)}.error{color:var(--danger)}.hash {color:var(--blue);text-decoration:none;overflow-wrap:anywhere}.tabs {display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:15px}.tab {border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--muted);padding:8px 4px}.tab.active{color:var(--brand);border-color:var(--brand)}.panel[hidden]{display:none}@media(max-width:900px){.app{width:min(100% - 22px,600px);padding-top:16px}.grid,.split{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column;gap:8px}.row{grid-template-columns:88px 1fr}}
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      color-scheme: dark;
+      --bg: #090d18;
+      --surface: #111827;
+      --surface-alt: #171f31;
+      --line: #2a354d;
+      --text: #f4f7ff;
+      --muted: #a6b1c8;
+      --brand: #6ee7b7;
+      --blue: #7dd3fc;
+      --danger: #ff879b;
+      --warning: #fcd34d;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 10% -10%, #17345a 0, transparent 36rem),
+        var(--bg);
+      color: var(--text);
+      font: 14px/1.6 Manrope, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    button, input, select, textarea, a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button, input, select, textarea {
+      min-height: 44px;
+    }
+
+    button {
+      border: 1px solid var(--brand);
+      border-radius: 10px;
+      padding: 10px 15px;
+      background: var(--brand);
+      color: #052017;
+      font-weight: 800;
+      cursor: pointer;
+      transition: filter 150ms, opacity 150ms, border-color 150ms;
+    }
+
+    button:hover:not(:disabled) { filter: brightness(1.08); }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--brand);
+    }
+
+    button.danger {
+      border-color: var(--danger);
+      background: transparent;
+      color: var(--danger);
+    }
+
+    :focus-visible {
+      outline: 3px solid #fff;
+      outline-offset: 3px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px 12px;
+      background: #090e19;
+      color: var(--text);
+      font: 16px/1.5 "DM Mono", monospace;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 88px;
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: #8290aa;
+      opacity: 1;
+    }
+
+    label {
+      display: block;
+      margin: 14px 0 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h2 {
+      margin-bottom: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 18px;
+      letter-spacing: -.3px;
+    }
+
+    code {
+      font-family: "DM Mono", monospace;
+      overflow-wrap: anywhere;
+    }
+
+    [hidden] { display: none !important; }
+
+    .app {
+      width: min(1160px, calc(100% - 36px));
+      margin: auto;
+      padding: 30px 0 40px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      margin: 0;
+      font-size: 27px;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    .brand span { color: var(--brand); }
+
+    .tagline {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font: 11px/1.7 "DM Mono", monospace;
+      letter-spacing: .6px;
+    }
+
+    .relay {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 8px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+
+    .dot.on {
+      background: var(--brand);
+      box-shadow: 0 0 12px #6ee7b755;
+    }
+
+    .intro {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .intro h2 {
+      margin-bottom: 7px;
+      color: var(--text);
+      font-size: 23px;
+      letter-spacing: -.6px;
+      text-transform: none;
+    }
+
+    .intro p {
+      max-width: 680px;
+      margin-bottom: 0;
+      color: var(--muted);
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      padding: 6px 10px;
+      border: 1px solid #335347;
+      border-radius: 999px;
+      background: #11271f;
+      color: var(--brand);
+      font: 11px "DM Mono", monospace;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 310px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .stack { display: grid; gap: 20px; }
+
+    .grid > *, .stack > *, .card { min-width: 0; }
+
+    .card {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, #171f31f5, #0f1523f5);
+      box-shadow: 0 14px 32px #0002;
+    }
+
+    .wallet {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      width: 100%;
+      margin-bottom: 9px;
+      padding: 12px;
+      border-color: var(--line);
+      background: #0c1220;
+      color: var(--text);
+      text-align: left;
+    }
+
+    .wallet.selected {
+      border-color: var(--brand);
+      background: #11291f;
+      box-shadow: inset 3px 0 var(--brand);
+    }
+
+    .wallet-icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 34px;
+      border-radius: 9px;
+      background: #243349;
+      color: var(--blue);
+      font-size: 15px;
+    }
+
+    .wallet b { display: block; font-size: 13px; }
+
+    .wallet small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .account {
+      margin: 14px 0;
+      color: var(--blue);
+      font: 12px/1.8 "DM Mono", monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .muted, .empty { color: var(--muted); }
+
+    .empty { font-size: 13px; }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 16px;
+    }
+
+    .actions.start { justify-content: flex-start; }
+
+    .notice {
+      margin: 14px 0 0;
+      padding: 11px 12px;
+      border-left: 3px solid var(--blue);
+      border-radius: 4px;
+      background: #0c1726;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .notice.warning {
+      border-color: var(--warning);
+      background: #262316;
+      color: #f6df9a;
+    }
+
+    .balance {
+      margin-top: 12px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0c1220;
+      color: var(--blue);
+      font: 12px/1.7 "DM Mono", monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      margin: -4px 0 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 5px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      background: transparent;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .tab[aria-selected="true"] {
+      border-bottom-color: var(--brand);
+      color: var(--brand);
+    }
+
+    .request {
+      border-color: var(--blue);
+      background: linear-gradient(145deg, #11233a, #101927);
+    }
+
+    .method {
+      margin-bottom: 12px;
+      color: var(--blue);
+      font: 500 19px/1.5 "DM Mono", monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .rows { border-top: 1px solid var(--line); }
+
+    .row {
+      display: grid;
+      grid-template-columns: 110px minmax(0, 1fr);
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    .row > span { color: var(--muted); }
+
+    .row code {
+      color: #dbeafe;
+      white-space: pre-wrap;
+      font-size: 11px;
+    }
+
+    details { margin-top: 14px; }
+
+    summary {
+      padding: 8px 0;
+      cursor: pointer;
+      color: var(--blue);
+      font-size: 12px;
+    }
+
+    pre {
+      max-height: 300px;
+      overflow: auto;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #090e19;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: 11px/1.7 "DM Mono", monospace;
+    }
+
+    .session {
+      padding: 12px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .session strong {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .session small {
+      display: block;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .session button { margin-top: 10px; }
+
+    .log {
+      max-height: 240px;
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+      font: 12px/1.8 "DM Mono", monospace;
+    }
+
+    .log > div {
+      padding: 7px 0;
+      border-bottom: 1px solid #ffffff0b;
+      overflow-wrap: anywhere;
+    }
+
+    .log .info { color: var(--muted); }
+    .log .success { color: var(--brand); }
+    .log .error { color: var(--danger); }
+
+    .card-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card-heading h2 { margin: 0; }
+
+    .card-heading button {
+      min-height: 36px;
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+
+    .check {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-weight: 500;
+      line-height: 1.7;
+    }
+
+    .check input {
+      width: 18px;
+      height: 18px;
+      min-height: 0;
+      flex: 0 0 18px;
+      margin-top: 2px;
+      accent-color: var(--brand);
+    }
+
+    .feedback {
+      margin: 16px 0 0;
+      color: var(--danger);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .footer {
+      margin-top: 26px;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .skip-link {
+      position: absolute;
+      z-index: 100;
+      top: 8px;
+      left: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--brand);
+      color: #052017;
+      transform: translateY(-160%);
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 850px) {
+      .app { width: min(650px, calc(100% - 24px)); padding-top: 18px; }
+      .grid { grid-template-columns: 1fr; }
+      .intro { flex-direction: column; gap: 12px; }
+    }
+
+    @media (max-width: 480px) {
+      .header { align-items: flex-start; flex-direction: column; gap: 12px; }
+      .card { padding: 17px; }
+      .row { grid-template-columns: 1fr; gap: 5px; }
+      .actions > button { flex: 1 1 auto; }
+      .intro h2 { font-size: 21px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+      }
+    }
   </style>
 </head>
+
 <body>
-<main class="app">
-  <header><div><div class="brand">Spell <span>Bridge</span></div><div class="tag">SELF-CUSTODY · EVM WALLETCONNECT BRIDGE</div></div><div class="status"><i class="dot" id="relay-dot"></i><span id="relay-status">Relay not connected</span></div></header>
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<main class="app" id="main-content" tabindex="-1">
+  <header class="header">
+    <div>
+      <h1 class="brand">Spell <span>Bridge</span></h1>
+      <p class="tagline">SELF-CUSTODY · EVM WALLETCONNECT BRIDGE</p>
+    </div>
+    <div class="relay" role="status">
+      <span class="dot" id="relay-dot" aria-hidden="true"></span>
+      <span id="relay-status">WalletConnect not initialized</span>
+    </div>
+  </header>
+
+  <section class="intro" aria-labelledby="intro-title">
+    <div>
+      <h2 id="intro-title">Your wallet. Your approval.</h2>
+      <p>
+        Connect a browser wallet, pair a trusted dApp, and review its requests
+        before approving them in your wallet extension.
+      </p>
+    </div>
+    <span class="badge">NO PRIVATE KEYS REQUIRED</span>
+  </section>
+
   <div class="grid">
     <aside class="stack">
-      <section class="card"><h2>1 · Wallet extension</h2><div id="wallet-list" aria-live="polite"><p class="empty">Looking for installed wallets…</p></div><div id="account" class="account" aria-live="polite"></div><button class="secondary" id="rescan" type="button">Find wallets</button></section>
-      <section class="card"><h2>Network</h2><label for="network">Active EVM network</label><select id="network" disabled><option value="0x1">Ethereum</option><option value="0x38">BNB Smart Chain</option><option value="0x89">Polygon</option><option value="0xa">Optimism</option><option value="0xa4b1">Arbitrum One</option><option value="0x2105">Base</option><option value="0xaa36a7">Sepolia testnet</option></select><div class="notice">The extension is the source of truth. Switching networks always requires its confirmation.</div></section>
-    </aside>
-    <section class="stack">
-      <section class="card"><h2>WalletConnect</h2><label for="wc-uri">Pairing URI</label><textarea id="wc-uri" spellcheck="false" placeholder="wc:…"></textarea><div class="actions"><button id="pair" disabled type="button">Pair dApp</button></div><p class="notice">Only pair with dApps you trust. A pairing gives that dApp a route to request actions, not permission to sign them automatically.</p></section>
-      <section class="card request" id="request-card" hidden aria-live="polite"><h2>Approval required</h2><div class="method" id="request-method">—</div><div id="request-summary" class="rows"></div><div class="notice warning">Review every field in your wallet extension too. Spell Bridge never changes transaction value, recipient, calldata, gas, or signature parameters.</div><div class="actions"><button id="reject-request" class="danger" type="button">Reject</button><button id="approve-request" type="button">Approve in extension</button></div></section>
-      <section class="card"><div class="tabs" role="tablist"><button class="tab active" role="tab" aria-selected="true" aria-controls="send-panel" id="send-tab">Send</button><button class="tab" role="tab" aria-selected="false" aria-controls="token-panel" id="token-tab">Send token</button><button class="tab" role="tab" aria-selected="false" aria-controls="nft-panel" id="nft-tab">Send NFT</button></div>
-        <div class="panel" id="send-panel" role="tabpanel"><h3>Native asset transfer</h3><div class="notice" id="native-balance">Available: connect a wallet to view balance.</div><label for="send-to">Recipient</label><input id="send-to" placeholder="0x…" autocomplete="off"><label for="send-value">Amount (ETH / native asset)</label><input id="send-value" type="text" inputmode="decimal" placeholder="0.00"><div class="actions"><button id="send-native-max" class="secondary" disabled type="button">Max</button><button id="send-native" disabled type="button">Send to extension</button></div></div>
-        <div class="panel" id="token-panel" role="tabpanel" hidden><h3>ERC-20 token transfer</h3><label for="token-contract">Token contract</label><input id="token-contract" placeholder="0x…" autocomplete="off"><div class="actions"><button id="load-token" class="secondary" disabled type="button">Check token & balance</button></div><div class="notice" id="token-balance">Enter an ERC-20 contract to check the connected account’s balance.</div><label for="token-to">Recipient</label><input id="token-to" placeholder="0x…" autocomplete="off"><label for="token-value">Amount</label><input id="token-value" type="text" inputmode="decimal" placeholder="0.00"><div class="actions"><button id="send-token-max" class="secondary" disabled type="button">Max</button><button id="send-token" disabled type="button">Send to extension</button></div><p class="notice">Token balances can be read from a known ERC-20 contract. EVM wallets do not expose a standard RPC method to enumerate every token held by an address.</p></div>
-        <div class="panel" id="nft-panel" role="tabpanel" hidden><h3>ERC-721 NFT transfer</h3><label for="nft-contract">NFT contract</label><input id="nft-contract" placeholder="0x…" autocomplete="off"><label for="nft-token">Token ID (decimal or 0x hex)</label><input id="nft-token" placeholder="e.g. 123"><label for="nft-to">Recipient</label><input id="nft-to" placeholder="0x…" autocomplete="off"><div class="notice">Uses <code>safeTransferFrom(address,address,uint256)</code>. The connected account must own the token. ERC-1155 transfers are intentionally not guessed.</div><div class="actions"><button id="send-nft" disabled type="button">Send NFT</button></div></div>
+      <section class="card" aria-labelledby="wallet-heading">
+        <h2 id="wallet-heading">1 · Browser wallet</h2>
+        <div id="wallet-list">
+          <p class="empty">Looking for installed wallets…</p>
+        </div>
+        <div id="account" class="account" aria-live="polite">
+          No wallet connected.
+        </div>
+        <div class="actions start">
+          <button class="secondary" id="rescan" type="button">Find wallets</button>
+          <button class="danger" id="disconnect" type="button" disabled>
+            Disconnect
+          </button>
+        </div>
       </section>
-      <section class="card"><h2>Activity</h2><div class="log" id="log" aria-live="polite">Ready. Connect a wallet to start.</div></section>
-    </section>
-  </div>
-</main>
-<script type="module">
-import { Core } from 'https://esm.sh/@walletconnect/core@2.10.3';
-import { Web3Wallet } from 'https://esm.sh/@walletconnect/web3wallet@1.9.3';
 
-// Replace this with your own WalletConnect Cloud project ID before production.
-const PROJECT_ID = '86694c6d7377473e04f5ef5e714e12ed';
-const ERC721_SAFE_TRANSFER = '0x42842e0e';
-const ERC20_TRANSFER = '0xa9059cbb', ERC20_BALANCE_OF = '0x70a08231', ERC20_DECIMALS = '0x313ce567', ERC20_SYMBOL = '0x95d89b41';
+      <section class="card" aria-labelledby="network-heading">
+        <h2 id="network-heading">Network</h2>
+        <label for="network">Active EVM network</label>
+        <select id="network" disabled>
+          <option value="0x1">Ethereum</option>
+          <option value="0x38">BNB Smart Chain</option>
+          <option value="0x89">Polygon</option>
+          <option value="0xa">Optimism</option>
+          <option value="0xa4b1">Arbitrum One</option>
+          <option value="0x2105">Base</option>
+          <option value="0xaa36a7">Sepolia testnet</option>
+        </select>
+        <p class="notice">
+          Network changes are requested through your wallet. It may ask you
+          to confirm. Changing accounts or networks ends incompatible dApp sessions.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="privacy-heading">
+        <h2 id="privacy-heading">Privacy & read access</h2>
+
+        <label class="check" for="allow-rpc">
+          <input id="allow-rpc" type="checkbox">
+          <span>
+            Allow public RPC fallback when my wallet cannot answer read requests.
+          </span>
+        </label>
+
+        <p class="notice">
+          Public RPC queries may disclose your IP address, wallet address, and
+          queried contracts to the RPC provider.
+        </p>
+
+        <p class="notice">
+          “Find tokens” sends your address and chain to this site's asset API
+          and its Alchemy indexer. Discovery runs only when you request it.
+        </p>
+      </section>
+    </aside>
+
+    <div class="stack">
+      <section class="card" aria-labelledby="pair-heading">
+        <h2 id="pair-heading">2 · Pair a dApp</h2>
+
+        <form id="pair-form">
+          <label for="wc-uri">WalletConnect pairing URI</label>
+          <textarea
+            id="wc-uri"
+            placeholder="wc:…"
+            spellcheck="false"
+            autocapitalize="off"
+            autocomplete="off"
+            required
+          ></textarea>
+
+          <div class="actions">
+            <button id="pair" type="submit" disabled>Pair dApp</button>
+          </div>
+        </form>
+
+        <p class="notice">
+          Pair only with dApps you trust. Pairing does not authorize automatic
+          signing. This bridge supports transaction requests, personal signing,
+          and EIP-712 v4 signing on the selected account and network.
+        </p>
+      </section>
+
+      <section
+        class="card request"
+        id="request-card"
+        aria-labelledby="request-heading"
+        hidden
+      >
+        <h2 id="request-heading" tabindex="-1">Approval required</h2>
+        <div class="method" id="request-method"></div>
+        <div class="rows" id="request-summary"></div>
+
+        <details>
+          <summary>View complete request</summary>
+          <pre id="request-raw"></pre>
+        </details>
+
+        <p class="notice warning">
+          A signature can authorize asset spending without sending a transaction
+          immediately. Review the full request and your wallet's confirmation.
+          dApp names and URLs are self-reported, not verified identities.
+        </p>
+
+        <div class="actions">
+          <button id="reject-request" class="danger" type="button">Reject</button>
+          <button id="approve-request" type="button">Approve in extension</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="sessions-heading">
+        <h2 id="sessions-heading">Connected dApps</h2>
+        <div id="sessions"><p class="empty">No active sessions.</p></div>
+      </section>
+
+      <section class="card" aria-label="Asset transfers">
+        <div class="tabs" role="tablist" aria-label="Transfer type">
+          <button
+            class="tab"
+            id="native-tab"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="native-panel"
+          >Native asset</button>
+          <button
+            class="tab"
+            id="token-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="token-panel"
+            tabindex="-1"
+          >ERC-20 token</button>
+          <button
+            class="tab"
+            id="nft-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="nft-panel"
+            tabindex="-1"
+          >ERC-721 NFT</button>
+        </div>
+
+        <div
+          id="native-panel"
+          role="tabpanel"
+          aria-labelledby="native-tab"
+        >
+          <h3>Send a native asset</h3>
+          <p class="muted">Prepare a transfer for your wallet to review.</p>
+          <div class="balance" id="native-balance">
+            Connect a wallet to view its balance.
+          </div>
+
+          <form id="native-form">
+            <label for="send-to">Recipient address</label>
+            <input
+              id="send-to"
+              placeholder="0x…"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              required
+            >
+
+            <label for="send-value" id="native-amount-label">Amount</label>
+            <input
+              id="send-value"
+              inputmode="decimal"
+              placeholder="0.00"
+              autocomplete="off"
+              required
+            >
+
+            <p class="notice">
+              Leave enough native currency for network fees. Your wallet
+              calculates fees and presents the final confirmation.
+            </p>
+
+            <div class="actions">
+              <button id="refresh-native" class="secondary" type="button" disabled>
+                Refresh balance
+              </button>
+              <button id="send-native" type="submit" disabled>
+                Review in wallet
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div
+          id="token-panel"
+          role="tabpanel"
+          aria-labelledby="token-tab"
+          hidden
+        >
+          <h3>Send an ERC-20 token</h3>
+
+          <label for="asset-list">Indexed assets</label>
+          <select id="asset-list" disabled>
+            <option value="">Find tokens or import a contract below</option>
+          </select>
+
+          <div class="actions">
+            <button id="refresh-assets" class="secondary" type="button" disabled>
+              Find tokens
+            </button>
+          </div>
+
+          <p class="notice" id="asset-status">
+            Discovery may be incomplete and can include untrusted spam tokens.
+            Always verify the contract address.
+          </p>
+
+          <label for="token-contract">Token contract</label>
+          <input
+            id="token-contract"
+            placeholder="0x…"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+          >
+
+          <div class="actions">
+            <button id="load-token" class="secondary" type="button" disabled>
+              Check token & balance
+            </button>
+          </div>
+
+          <div class="balance" id="token-balance">
+            Import a token contract to verify its balance and precision.
+          </div>
+
+          <form id="token-form">
+            <label for="token-to">Recipient address</label>
+            <input
+              id="token-to"
+              placeholder="0x…"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              required
+            >
+
+            <label for="token-value">Token amount</label>
+            <input
+              id="token-value"
+              inputmode="decimal"
+              placeholder="0.00"
+              autocomplete="off"
+              required
+            >
+
+            <div class="actions">
+              <button id="send-token-max" class="secondary" type="button" disabled>
+                Max
+              </button>
+              <button id="send-token" type="submit" disabled>
+                Review in wallet
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div
+          id="nft-panel"
+          role="tabpanel"
+          aria-labelledby="nft-tab"
+          hidden
+        >
+          <h3>Send an ERC-721 NFT</h3>
+
+          <form id="nft-form">
+            <label for="nft-contract">NFT contract</label>
+            <input
+              id="nft-contract"
+              placeholder="0x…"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              required
+            >
+
+            <label for="nft-token">Token ID</label>
+            <input
+              id="nft-token"
+              placeholder="123 or 0x7b"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              required
+            >
+
+            <label for="nft-to">Recipient address</label>
+            <input
+              id="nft-to"
+              placeholder="0x…"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              required
+            >
+
+            <p class="notice">
+              Uses safeTransferFrom(address,address,uint256). Ownership is checked
+              before opening your wallet. ERC-1155 is not supported.
+            </p>
+
+            <div class="actions">
+              <button id="send-nft" type="submit" disabled>
+                Review NFT transfer
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <p class="feedback" id="feedback" role="alert" hidden></p>
+      </section>
+
+      <section class="card" aria-labelledby="activity-heading">
+        <div class="card-heading">
+          <h2 id="activity-heading">Activity</h2>
+          <button id="clear-log" class="secondary" type="button">Clear</button>
+        </div>
+        <div
+          id="log"
+          class="log"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          tabindex="0"
+        ></div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="footer">
+    Spell Bridge never asks for a recovery phrase or private key.
+    Disconnecting here does not revoke on-chain token approvals.
+  </footer>
+
+  <div class="sr-only" id="announcement" role="status" aria-live="polite"></div>
+
+  <noscript>
+    <p class="notice warning">JavaScript is required to connect your wallet.</p>
+  </noscript>
+</main>
+
+<script type="module">
+/*
+ * Configuration
+ *
+ * Replace PROJECT_ID with your own WalletConnect project ID.
+ * Configure allowed origins in the WalletConnect project dashboard.
+ *
+ * SDK versions below match the original project. Before production,
+ * migrate/test against the currently supported WalletConnect SDK.
+ */
+const PROJECT_ID = 'YOUR_WALLETCONNECT_PROJECT_ID';
+
+const CORE_MODULE = 'https://esm.sh/@walletconnect/core@2.10.3';
+const WALLET_MODULE = 'https://esm.sh/@walletconnect/web3wallet@1.9.3';
+
+const NETWORKS = {
+  '0x1': {
+    name: 'Ethereum',
+    symbol: 'ETH',
+    rpc: 'https://ethereum-rpc.publicnode.com'
+  },
+  '0x38': {
+    name: 'BNB Smart Chain',
+    symbol: 'BNB',
+    rpc: 'https://bsc-dataseed.binance.org/'
+  },
+  '0x89': {
+    name: 'Polygon',
+    symbol: 'POL',
+    rpc: 'https://polygon-bor-rpc.publicnode.com'
+  },
+  '0xa': {
+    name: 'Optimism',
+    symbol: 'ETH',
+    rpc: 'https://mainnet.optimism.io'
+  },
+  '0xa4b1': {
+    name: 'Arbitrum One',
+    symbol: 'ETH',
+    rpc: 'https://arb1.arbitrum.io/rpc'
+  },
+  '0x2105': {
+    name: 'Base',
+    symbol: 'ETH',
+    rpc: 'https://mainnet.base.org'
+  },
+  '0xaa36a7': {
+    name: 'Sepolia',
+    symbol: 'ETH',
+    rpc: 'https://ethereum-sepolia-rpc.publicnode.com'
+  }
+};
+
+const METHODS = [
+  'eth_sendTransaction',
+  'personal_sign',
+  'eth_signTypedData_v4'
+];
+
+const EVENTS = ['accountsChanged', 'chainChanged'];
+const UINT256_MAX = (1n << 256n) - 1n;
+const ZERO_ADDRESS = '0x' + '0'.repeat(40);
+
 const $ = id => document.getElementById(id);
-let providers = [], provider, account, wcClient, pending, connecting = false, providerListeners, nativeBalance, token, activeChain;
-function log(message, type='') { const d=document.createElement('div'); d.className=type; d.textContent=`› ${message}`; $('log').append(d); $('log').scrollTop=$('log').scrollHeight; }
-function short(v) { return v && v.length > 18 ? `${v.slice(0,10)}…${v.slice(-6)}` : v || '—'; }
-function isAddress(v) { return /^0x[0-9a-fA-F]{40}$/.test(v || ''); }
-function isHexQuantity(v) { return typeof v==='string' && /^0x[0-9a-fA-F]+$/.test(v); }
-function hexQuantity(value) { const n=BigInt(value); if(n < 0n) throw new Error('Value cannot be negative'); return '0x'+n.toString(16); }
-function units(value, decimals) { if(!/^\d*(\.\d*)?$/.test(value) || !value) throw new Error('Enter a valid amount'); const [w,f='']=value.split('.'); if(f.length>decimals) throw new Error(`This asset supports at most ${decimals} decimals`); return BigInt(w||0)*10n**BigInt(decimals)+BigInt((f+'0'.repeat(decimals)).slice(0,decimals)); }
-function nativeToWei(value) { return hexQuantity(units(value,18)); }
-function formatUnits(value, decimals, precision=6) { const n=BigInt(value), divisor=10n**BigInt(decimals), whole=n/divisor; const fraction=(n%divisor).toString().padStart(decimals,'0').slice(0,precision).replace(/0+$/,''); return fraction ? `${whole}.${fraction}` : whole.toString(); }
-function addressWord(value) { return value.slice(2).toLowerCase().padStart(64,'0'); }
-function setConnected(yes) { $('pair').disabled=!yes; $('send-native').disabled=!yes; $('send-nft').disabled=!yes; $('network').disabled=!yes; }
-function providerName(info) { return info?.name || 'Injected wallet'; }
-function walletIcon(info) { return info?.icon || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="28" height="28"%3E%3Crect width="28" height="28" rx="6" fill="%23233"/%3E%3C/svg%3E'; }
-function addProvider(candidate, info={}) { if(!candidate || typeof candidate.request !== 'function' || providers.some(p=>p.provider===candidate)) return; providers.push({info:{uuid:info.uuid || `injected-${providers.length}`,name:providerName(info),icon:walletIcon(info)},provider:candidate}); }
-function renderWallets() { const target=$('wallet-list'); target.innerHTML=''; if(!providers.length) { const message=document.createElement('p'); message.className='empty'; message.textContent='No injected wallets found. Install or unlock an EVM wallet, then try again.'; target.append(message); return; } providers.forEach((entry,i)=>{ const b=document.createElement('button'); b.type='button'; b.disabled=connecting; b.className='wallet'+(provider===entry.provider?' selected':''); const img=document.createElement('img'); img.src=entry.info.icon; img.alt=''; const text=document.createElement('span'); const name=document.createElement('b'); name.textContent=entry.info.name; const detail=document.createElement('small'); detail.textContent=provider===entry.provider && account ? short(account) : 'Connect account'; text.append(name,detail); b.append(img,text); b.onclick=()=>connect(i); target.append(b); }); }
-function injectedProviders() { const candidates=[window.ethereum]; if(Array.isArray(window.ethereum?.providers)) candidates.push(...window.ethereum.providers); return candidates; }
-function discover() { window.dispatchEvent(new Event('eip6963:requestProvider')); injectedProviders().forEach(candidate=>addProvider(candidate)); renderWallets(); }
-window.addEventListener('eip6963:announceProvider', event=>{ const detail=event.detail; if(detail?.provider) { addProvider(detail.provider,detail.info); renderWallets(); }});
-window.addEventListener('ethereum#initialized', discover, {once:true});
-function updateAccount(next) { const previous=account; account=isAddress(next) ? next : undefined; if(account!==previous) token=undefined; $('account').textContent=account || (provider ? 'Wallet disconnected' : ''); setConnected(!!account); $('load-token').disabled=!account; $('send-native-max').disabled=!account; if(!account) { nativeBalance=undefined; token=undefined; $('native-balance').textContent='Available: connect a wallet to view balance.'; $('token-balance').textContent='Enter an ERC-20 contract to check the connected account’s balance.'; $('send-token').disabled=true; $('send-token-max').disabled=true; } else refreshNativeBalance(); renderWallets(); }
-function unbindProvider() { if(!provider || !providerListeners) return; provider.removeListener?.('accountsChanged',providerListeners.accounts); provider.removeListener?.('chainChanged',providerListeners.chain); providerListeners=undefined; }
-function bindProviderEvents(selected) { unbindProvider(); providerListeners={accounts:accounts=>{ if(provider===selected) updateAccount(accounts?.[0]); },chain:chain=>{ if(provider===selected) syncChain(chain); }}; selected.on?.('accountsChanged',providerListeners.accounts); selected.on?.('chainChanged',providerListeners.chain); }
-async function connect(index) { if(connecting) return; const selected=providers[index]?.provider; if(!selected) return; connecting=true; renderWallets(); try { if(provider!==selected) { unbindProvider(); provider=selected; updateAccount(); bindProviderEvents(selected); } const accounts=await selected.request({method:'eth_requestAccounts'}); if(provider!==selected) return; if(!Array.isArray(accounts) || !isAddress(accounts[0])) throw new Error('The wallet did not return an EVM account'); updateAccount(accounts[0]); await syncChain(); log(`Connected ${short(account)}`,'success'); } catch(e) { if(provider===selected) updateAccount(); log(`Connection failed: ${e.message || 'Request was rejected'}`,'error'); } finally { connecting=false; renderWallets(); } }
-async function syncChain(chainId) { if(!provider) return; try { const chain=chainId || await provider.request({method:'eth_chainId'}); activeChain=chain; $('network').value=chain; if(account) { refreshNativeBalance(); if(token) loadToken(); } } catch {} }
-async function refreshNativeBalance() { const selected=provider, selectedAccount=account, selectedChain=activeChain; if(!selected || !selectedAccount) return; try { const balance=BigInt(await selected.request({method:'eth_getBalance',params:[selectedAccount,'latest']})); if(provider!==selected || account!==selectedAccount || activeChain!==selectedChain) return; nativeBalance=balance; $('native-balance').textContent=`Available: ${formatUnits(balance,18)} native asset`; } catch { if(provider===selected && account===selectedAccount) $('native-balance').textContent='Balance unavailable from this wallet.'; } }
-function decodeSymbol(hex) { if(typeof hex!=='string' || !hex.startsWith('0x')) return 'Token'; const bytes=hex.slice(2); if(bytes.length===64) return bytes.replace(/00+$/,'').match(/.{1,2}/g)?.map(v=>String.fromCharCode(parseInt(v,16))).join('') || 'Token'; try { const length=parseInt(bytes.slice(64,128),16); return bytes.slice(128,128+length*2).match(/.{1,2}/g)?.map(v=>String.fromCharCode(parseInt(v,16))).join('') || 'Token'; } catch { return 'Token'; } }
-async function loadToken() { const contract=$('token-contract').value.trim(), selected=provider, selectedAccount=account, selectedChain=activeChain; if(!selectedAccount) return; if(!isAddress(contract)) return log('Token contract must be a valid EVM address','error'); $('token-balance').textContent='Checking token contract…'; try { const [rawDecimals,rawBalance]=await Promise.all([selected.request({method:'eth_call',params:[{to:contract,data:ERC20_DECIMALS},'latest']}),selected.request({method:'eth_call',params:[{to:contract,data:ERC20_BALANCE_OF+addressWord(selectedAccount)},'latest']})]); const rawSymbol=await selected.request({method:'eth_call',params:[{to:contract,data:ERC20_SYMBOL},'latest']}).catch(()=>null); if(provider!==selected || account!==selectedAccount || activeChain!==selectedChain || $('token-contract').value.trim()!==contract) return; const decimals=Number(BigInt(rawDecimals)); if(!Number.isInteger(decimals)||decimals<0||decimals>255) throw new Error('Invalid token decimals'); token={contract,decimals,symbol:decodeSymbol(rawSymbol),balance:BigInt(rawBalance)}; $('token-balance').textContent=`Available: ${formatUnits(token.balance,token.decimals)} ${token.symbol}`; $('send-token').disabled=false; $('send-token-max').disabled=false; } catch(e) { if(provider!==selected || account!==selectedAccount || $('token-contract').value.trim()!==contract) return; token=undefined; $('send-token').disabled=true; $('send-token-max').disabled=true; $('token-balance').textContent='This contract could not be read as a standard ERC-20 token.'; log(`Token lookup failed: ${e.message || 'RPC error'}`,'error'); } }
-$('network').onchange=async e=>{ try { await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:e.target.value}]}); log('Network changed','success'); } catch(err) { log(`Network switch rejected or unsupported: ${err.message}`,'error'); await syncChain(); } };
-async function initWalletConnect() { const core=new Core({projectId:PROJECT_ID}); wcClient=await Web3Wallet.init({core,metadata:{name:'Spell Bridge',description:'Self-custody EVM WalletConnect bridge',url:location.origin,icons:[]}}); core.relayer.on('relayer_connect',()=>{$('relay-dot').className='dot on';$('relay-status').textContent='Relay connected';}); core.relayer.on('relayer_disconnect',()=>{$('relay-dot').className='dot';$('relay-status').textContent='Relay disconnected';});
- wcClient.on('session_proposal',async proposal=>{ try { const required=proposal.params.requiredNamespaces?.eip155; if(!required) throw new Error('This bridge currently supports EVM (eip155) sessions only'); if(!provider || !account || !activeChain) throw new Error('Connect a wallet before approving a session'); const chain=`eip155:${parseInt(activeChain,16)}`; const requiredMethods=required.methods||[]; const allowed=new Set(['eth_accounts','eth_chainId','eth_sendTransaction','personal_sign','eth_sign','eth_signTypedData','eth_signTypedData_v3','eth_signTypedData_v4','wallet_switchEthereumChain']); const unsupported=requiredMethods.filter(method=>!allowed.has(method)); if(unsupported.length) throw new Error(`Unsupported required method: ${unsupported.join(', ')}`); const methods=[...new Set([...requiredMethods,...(proposal.params.optionalNamespaces?.eip155?.methods||[]).filter(method=>allowed.has(method))])]; if(required.chains?.some(requestedChain=>requestedChain!==chain)) throw new Error(`This bridge only approves the active network (${chain})`); const namespaces={eip155:{accounts:[`${chain}:${account}`],chains:[chain],methods,events:['accountsChanged','chainChanged']}}; await wcClient.approveSession({id:proposal.id,namespaces}); log(`Session approved for ${proposal.params.proposer.metadata.name||'dApp'}`,'success'); } catch(e) { log(`Session proposal declined: ${e.message}`,'error'); try { await wcClient.rejectSession({id:proposal.id,reason:{code:5000,message:e.message}}); } catch {} } });
- wcClient.on('session_request',showRequest); }
-function row(label,value) { const d=document.createElement('div');d.className='row';d.innerHTML=`<span>${label}</span>`;const c=document.createElement('code');c.textContent=value;d.append(c);return d; }
-function showRequest(event) { pending=event; const req=event.params.request; $('request-method').textContent=req.method; const summary=$('request-summary');summary.innerHTML=''; summary.append(row('Chain',event.params.chainId)); if(req.method==='eth_sendTransaction') { const t=req.params?.[0]||{}; summary.append(row('From',t.from||account),row('To',t.to||'Contract creation'),row('Value',t.value||'0x0'),row('Data',short(t.data||'0x'))); } else summary.append(row('Parameters',JSON.stringify(req.params||[]))); $('request-card').hidden=false; log(`Request received: ${req.method}`); }
-async function respond(result, error) { if(!pending) return; const request=pending; pending=null; $('request-card').hidden=true; const response={id:request.id,jsonrpc:'2.0'}; if(error) response.error=error; else response.result=result; await wcClient.respondSessionRequest({topic:request.topic,response}); }
-$('approve-request').onclick=async()=>{ if(!pending) return; try { const {method,params}=pending.params.request; const result=await provider.request({method,params}); await respond(result); log('Request approved in extension','success'); } catch(e) { try { await respond(null,{code:4001,message:e.message||'User rejected request'}); } catch {} log(`Request not approved: ${e.message}`,'error'); } };
-$('reject-request').onclick=async()=>{ try { await respond(null,{code:4001,message:'User rejected request'}); log('Request rejected'); } catch(e) { log(`Could not reject: ${e.message}`,'error'); } };
-$('pair').onclick=async()=>{ const uri=$('wc-uri').value.trim(); if(!uri.startsWith('wc:')) return log('Enter a valid WalletConnect URI beginning with wc:.','error'); try { await wcClient.core.pairing.pair({uri}); log('Pairing request sent. Check for a session request.','success'); } catch(e) { log(`Pairing failed: ${e.message}`,'error'); } };
-async function submit(tx,label) { try { const hash=await provider.request({method:'eth_sendTransaction',params:[tx]}); log(`${label} signed and submitted by the extension: ${hash}`,'success'); } catch(e) { log(`${label} was not sent: ${e.message || 'Internal JSON-RPC error'}`,'error'); } }
-$('send-native-max').onclick=async()=>{ const to=$('send-to').value.trim(); try { if(nativeBalance === undefined) throw new Error('Balance is not available yet'); if(!isAddress(to)) throw new Error('Enter a recipient first so gas can be estimated'); const [gas,gasPrice]=await Promise.all([provider.request({method:'eth_estimateGas',params:[{from:account,to,value:'0x0'}]}),provider.request({method:'eth_gasPrice'})]); if(!isHexQuantity(gas) || !isHexQuantity(gasPrice)) throw new Error('Your wallet could not estimate the network fee. Enter an amount manually and confirm the fee in the extension.'); const reserve=BigInt(gas)*BigInt(gasPrice); if(reserve>=nativeBalance) throw new Error('Balance is not enough to cover network fees'); $('send-value').value=formatUnits(nativeBalance-reserve,18,18); log('Max amount reserves the estimated network fee. Your extension confirms the final fee.'); } catch(e) { log(`Could not calculate max: ${e.message || 'Fee estimate unavailable'}`,'error'); } };
-$('send-native').onclick=()=>{ const to=$('send-to').value.trim(); try { if(!isAddress(to)) throw new Error('Recipient must be a valid EVM address'); const value=nativeToWei($('send-value').value); if(nativeBalance !== undefined && BigInt(value)>nativeBalance) throw new Error('Amount exceeds the available balance'); submit({from:account,to,value},'Transfer'); } catch(e) { log(e.message,'error'); } };
-$('load-token').onclick=loadToken;
-$('token-contract').oninput=()=>{ token=undefined; $('send-token').disabled=true; $('send-token-max').disabled=true; $('token-balance').textContent='Check the token contract to refresh its balance.'; };
-$('send-token-max').onclick=()=>{ if(token) $('token-value').value=formatUnits(token.balance,token.decimals,token.decimals); };
-$('send-token').onclick=()=>{ const to=$('token-to').value.trim(); try { if(!token || token.contract.toLowerCase() !== $('token-contract').value.trim().toLowerCase()) throw new Error('Check the token contract and balance first'); if(!isAddress(to)) throw new Error('Recipient must be a valid EVM address'); const value=units($('token-value').value,token.decimals); if(value>token.balance) throw new Error('Amount exceeds the available token balance'); submit({from:account,to:token.contract,data:ERC20_TRANSFER+addressWord(to)+value.toString(16).padStart(64,'0')},`${token.symbol} transfer`); } catch(e) { log(e.message,'error'); } };
-$('send-nft').onclick=()=>{ const to=$('nft-to').value.trim(), contract=$('nft-contract').value.trim(), token=$('nft-token').value.trim(); try { if(!isAddress(to)||!isAddress(contract)) throw new Error('Contract and recipient must be valid EVM addresses'); const tokenHex=hexQuantity(token).slice(2).padStart(64,'0'); const from=account.slice(2).toLowerCase().padStart(64,'0'); const recipient=to.slice(2).toLowerCase().padStart(64,'0'); submit({from:account,to:contract,data:ERC721_SAFE_TRANSFER+from+recipient+tokenHex},'NFT transfer'); } catch(e) { log(`NFT transfer: ${e.message}`,'error'); } };
-for(const [tab,panel] of [['send-tab','send-panel'],['token-tab','token-panel'],['nft-tab','nft-panel']]) $(tab).onclick=()=>{ for(const id of ['send-tab','token-tab','nft-tab']) { const active=id===tab; $(id).classList.toggle('active',active);$(id).setAttribute('aria-selected',active); } for(const id of ['send-panel','token-panel','nft-panel']) $(id).hidden=id!==panel; };
-$('rescan').onclick=discover; setConnected(false); discover(); initWalletConnect().catch(e=>{log(`WalletConnect could not initialize: ${e.message}`,'error');$('relay-status').textContent='Relay unavailable';});
+
+let providers = [];
+let provider;
+let providerListeners;
+let account;
+let activeChain;
+let revision = 0;
+let connecting = false;
+let walletBusy = false;
+let pairing = false;
+let tokenLoading = false;
+let tokenLoadId = 0;
+let token;
+let nativeBalance;
+let detectedAssets = [];
+let assetsController;
+let assetsRequestId = 0;
+let wcClient;
+let wcInitialization;
+let pending;
+let pendingTimer;
+
+function isAddress(value) {
+  return typeof value === 'string' &&
+    /^0x[0-9a-fA-F]{40}$/.test(value);
+}
+
+function sameAddress(a, b) {
+  return isAddress(a) && isAddress(b) &&
+    a.toLowerCase() === b.toLowerCase();
+}
+
+function normalizeChain(value) {
+  if (
+    typeof value !== 'string' ||
+    !/^0x[0-9a-f]+$/i.test(value)
+  ) {
+    throw new Error('The wallet returned an invalid chain ID.');
+  }
+  return '0x' + BigInt(value).toString(16);
+}
+
+function caipChain(chain = activeChain) {
+  return `eip155:${BigInt(chain).toString()}`;
+}
+
+function short(value) {
+  return value && value.length > 20
+    ? `${value.slice(0, 10)}…${value.slice(-6)}`
+    : value || '—';
+}
+
+function errorMessage(error) {
+  if (error?.code === 4001) return 'The request was rejected in your wallet.';
+  if (error?.code === -32002) return 'A wallet request is already pending.';
+  return String(error?.message || 'The request failed.').slice(0, 350);
+}
+
+function log(message, type = 'info') {
+  const entry = document.createElement('div');
+  entry.className = type;
+  entry.textContent = `${new Date().toLocaleTimeString()} · ${message}`;
+  $('log').append(entry);
+
+  while ($('log').children.length > 100) {
+    $('log').firstElementChild.remove();
+  }
+
+  $('log').scrollTop = $('log').scrollHeight;
+}
+
+function report(error) {
+  const message = errorMessage(error);
+  $('feedback').textContent = message;
+  $('feedback').hidden = false;
+  log(message, 'error');
+}
+
+function clearFeedback() {
+  $('feedback').hidden = true;
+  $('feedback').textContent = '';
+}
+
+function announce(message) {
+  $('announcement').textContent = message;
+}
+
+function setRelay(connected, message) {
+  $('relay-dot').classList.toggle('on', connected);
+  $('relay-status').textContent = message;
+}
+
+function requireAddress(value, label = 'Address', rejectZero = false) {
+  const address = String(value).trim();
+
+  if (!isAddress(address)) {
+    throw new Error(`${label} must be a complete 0x EVM address.`);
+  }
+
+  if (rejectZero && sameAddress(address, ZERO_ADDRESS)) {
+    throw new Error(`${label} cannot be the zero address.`);
+  }
+
+  return address;
+}
+
+function units(value, decimals) {
+  if (
+    !Number.isInteger(decimals) ||
+    decimals < 0 ||
+    decimals > 255
+  ) {
+    throw new Error('Invalid token precision.');
+  }
+
+  const input = String(value).trim();
+
+  if (
+    input.length > 512 ||
+    !/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(input)
+  ) {
+    throw new Error('Enter a valid non-negative amount.');
+  }
+
+  const [whole = '', fraction = ''] = input.split('.');
+
+  if (fraction.length > decimals) {
+    throw new Error(`This asset supports at most ${decimals} decimal places.`);
+  }
+
+  const amount =
+    BigInt(whole || '0') * 10n ** BigInt(decimals) +
+    BigInt(fraction.padEnd(decimals, '0') || '0');
+
+  if (amount > UINT256_MAX) {
+    throw new Error('Amount exceeds the supported range.');
+  }
+
+  return amount;
+}
+
+function formatUnits(value, decimals, precision = 6) {
+  const amount = BigInt(value);
+
+  if (decimals === 0) return amount.toString();
+
+  const divisor = 10n ** BigInt(decimals);
+  const whole = amount / divisor;
+  const fraction = (amount % divisor)
+    .toString()
+    .padStart(decimals, '0')
+    .slice(0, Math.min(decimals, precision))
+    .replace(/0+$/, '');
+
+  if (amount > 0n && whole === 0n && !fraction && precision < decimals) {
+    return `<${'0.' + '0'.repeat(Math.max(0, precision - 1)) + '1'}`;
+  }
+
+  return fraction ? `${whole}.${fraction}` : whole.toString();
+}
+
+function quantity(value) {
+  const amount = BigInt(value);
+  if (amount < 0n) throw new Error('Negative values are not supported.');
+  return '0x' + amount.toString(16);
+}
+
+function uintWord(value) {
+  const amount = BigInt(value);
+  if (amount < 0n || amount > UINT256_MAX) {
+    throw new Error('Value is outside the uint256 range.');
+  }
+  return amount.toString(16).padStart(64, '0');
+}
+
+function addressWord(value) {
+  return requireAddress(value).slice(2).toLowerCase().padStart(64, '0');
+}
+
+function parseRpcInteger(value, label) {
+  if (
+    typeof value !== 'string' ||
+    !/^0x[0-9a-f]+$/i.test(value)
+  ) {
+    throw new Error(`${label} returned no usable on-chain data.`);
+  }
+  return BigInt(value);
+}
+
+function parseAbiUint(value, label) {
+  if (
+    typeof value !== 'string' ||
+    !/^0x[0-9a-f]{64}$/i.test(value)
+  ) {
+    throw new Error(`${label} returned an invalid ABI value.`);
+  }
+  return BigInt(value);
+}
+
+function snapshot() {
+  if (!provider || !account || !activeChain) {
+    throw new Error('Connect a wallet first.');
+  }
+
+  return {
+    provider,
+    account,
+    chain: activeChain,
+    revision
+  };
+}
+
+function isCurrent(ctx) {
+  return !!ctx &&
+    ctx.provider === provider &&
+    sameAddress(ctx.account, account) &&
+    ctx.chain === activeChain &&
+    ctx.revision === revision;
+}
+
+function assertCurrent(ctx) {
+  if (!isCurrent(ctx)) {
+    throw new Error('Wallet account or network changed. Review the action again.');
+  }
+}
+
+async function verifyWallet(ctx) {
+  assertCurrent(ctx);
+
+  const [accounts, chain] = await Promise.all([
+    ctx.provider.request({ method: 'eth_accounts' }),
+    ctx.provider.request({ method: 'eth_chainId' })
+  ]);
+
+  assertCurrent(ctx);
+
+  if (
+    !Array.isArray(accounts) ||
+    !sameAddress(accounts[0], ctx.account) ||
+    normalizeChain(chain) !== ctx.chain
+  ) {
+    throw new Error('The wallet context changed. Reconnect or refresh its state.');
+  }
+}
+
+function refreshControls() {
+  const connected = !!provider && !!account && !!activeChain;
+  const blocked = connecting || walletBusy || !!pending;
+
+  $('disconnect').disabled = !provider || connecting || walletBusy;
+  $('network').disabled = !connected || blocked;
+  $('pair').disabled = !connected || blocked || pairing;
+  $('refresh-native').disabled = !connected || blocked;
+  $('send-native').disabled = !connected || blocked;
+  $('send-nft').disabled = !connected || blocked;
+  $('refresh-assets').disabled =
+    !connected || blocked || !!assetsController;
+
+  $('load-token').disabled = !connected || blocked || tokenLoading;
+
+  const validToken = !!token &&
+    isCurrent(token.ctx) &&
+    sameAddress(token.contract, $('token-contract').value.trim());
+
+  $('send-token').disabled = !connected || blocked || !validToken;
+  $('send-token-max').disabled = !connected || blocked || !validToken;
+
+  $('approve-request').disabled =
+    !pending || pending.state !== 'review' || walletBusy;
+
+  $('reject-request').disabled =
+    !pending || pending.state !== 'review';
+
+  renderWallets();
+}
+
+function resetAssetState() {
+  nativeBalance = undefined;
+  token = undefined;
+  tokenLoading = false;
+  tokenLoadId++;
+  detectedAssets = [];
+  assetsRequestId++;
+  assetsController?.abort();
+  assetsController = undefined;
+
+  $('send-value').value = '';
+  $('token-value').value = '';
+  $('native-balance').textContent = account
+    ? 'Balance not loaded.'
+    : 'Connect a wallet to view its balance.';
+  $('token-balance').textContent =
+    'Import a token contract to verify its balance and precision.';
+  $('asset-status').textContent =
+    'Discovery runs only when you select “Find tokens”.';
+  renderAssets();
+}
+
+function applyContext(nextAccount, nextChain) {
+  const normalizedAccount = isAddress(nextAccount) ? nextAccount : undefined;
+  const normalizedChain = nextChain ? normalizeChain(nextChain) : undefined;
+
+  if (
+    sameAddress(account, normalizedAccount) &&
+    activeChain === normalizedChain
+  ) return;
+
+  if (
+    account === undefined &&
+    normalizedAccount === undefined &&
+    activeChain === normalizedChain
+  ) return;
+
+  account = normalizedAccount;
+  activeChain = normalizedChain;
+  revision++;
+  resetAssetState();
+
+  $('account').textContent = account || 'No wallet connected.';
+
+  $('network').querySelector('[data-custom]')?.remove();
+
+  if (activeChain && !NETWORKS[activeChain]) {
+    const option = document.createElement('option');
+    option.value = activeChain;
+    option.textContent = `Chain ${BigInt(activeChain)}`;
+    option.dataset.custom = 'true';
+    $('network').append(option);
+  }
+
+  if (activeChain) $('network').value = activeChain;
+
+  const symbol = NETWORKS[activeChain]?.symbol || 'native asset';
+  $('native-amount-label').textContent = `Amount (${symbol})`;
+
+  if (pending?.state === 'review') {
+    void rejectPending('Wallet account or network changed.');
+  } else if (pending?.state === 'forwarding') {
+    log('Wallet context changed during approval. Check your wallet carefully.', 'error');
+  }
+
+  void disconnectIncompatibleSessions();
+  refreshControls();
+
+  if (account && activeChain) void refreshNativeBalance();
+}
+
+function addProvider(candidate, info = {}) {
+  if (
+    !candidate ||
+    typeof candidate.request !== 'function' ||
+    providers.some(entry => entry.provider === candidate)
+  ) return;
+
+  providers.push({
+    provider: candidate,
+    name: String(info.name || 'Injected wallet').slice(0, 60)
+  });
+}
+
+function renderWallets() {
+  const target = $('wallet-list');
+  target.replaceChildren();
+
+  if (!providers.length) {
+    const empty = document.createElement('p');
+    empty.className = 'empty';
+    empty.textContent =
+      'No browser wallet found. Install or unlock an EVM wallet, then try again.';
+    target.append(empty);
+    return;
+  }
+
+  for (const entry of providers) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className =
+      'wallet' + (provider === entry.provider ? ' selected' : '');
+    button.disabled = connecting || walletBusy || !!pending;
+    button.setAttribute('aria-pressed', String(provider === entry.provider));
+
+    const icon = document.createElement('span');
+    icon.className = 'wallet-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = entry.name.slice(0, 1).toUpperCase();
+
+    const text = document.createElement('span');
+    const name = document.createElement('b');
+    const description = document.createElement('small');
+
+    name.textContent = entry.name;
+    description.textContent =
+      provider === entry.provider && account
+        ? short(account)
+        : 'Connect account';
+
+    text.append(name, description);
+    button.append(icon, text);
+    button.addEventListener('click', () => void connect(entry.provider));
+    target.append(button);
+  }
+}
+
+function discover() {
+  window.dispatchEvent(new Event('eip6963:requestProvider'));
+
+  if (Array.isArray(window.ethereum?.providers)) {
+    window.ethereum.providers.forEach(candidate => addProvider(candidate));
+  } else {
+    addProvider(window.ethereum);
+  }
+
+  renderWallets();
+}
+
+window.addEventListener('eip6963:announceProvider', event => {
+  if (event.detail?.provider) {
+    addProvider(event.detail.provider, event.detail.info);
+    renderWallets();
+  }
+});
+
+window.addEventListener('ethereum#initialized', discover, { once: true });
+
+function unbindProvider() {
+  if (!provider || !providerListeners) return;
+
+  provider.removeListener?.('accountsChanged', providerListeners.accounts);
+  provider.removeListener?.('chainChanged', providerListeners.chain);
+  provider.removeListener?.('disconnect', providerListeners.disconnect);
+  providerListeners = undefined;
+}
+
+function bindProvider(selected) {
+  providerListeners = {
+    accounts: accounts => {
+      if (provider === selected) {
+        applyContext(accounts?.[0], activeChain);
+      }
+    },
+    chain: chain => {
+      if (provider !== selected) return;
+      try {
+        applyContext(account, chain);
+      } catch (error) {
+        applyContext(undefined, undefined);
+        report(error);
+      }
+    },
+    disconnect: () => {
+      if (provider === selected) {
+        applyContext(undefined, undefined);
+        log('The wallet disconnected.');
+      }
+    }
+  };
+
+  selected.on?.('accountsChanged', providerListeners.accounts);
+  selected.on?.('chainChanged', providerListeners.chain);
+  selected.on?.('disconnect', providerListeners.disconnect);
+}
+
+async function connect(selected) {
+  if (connecting || walletBusy || pending) return;
+
+  connecting = true;
+  clearFeedback();
+  refreshControls();
+
+  try {
+    unbindProvider();
+    provider = selected;
+    revision++;
+    applyContext(undefined, undefined);
+
+    await selected.request({ method: 'eth_requestAccounts' });
+
+    bindProvider(selected);
+
+    const [accounts, chain] = await Promise.all([
+      selected.request({ method: 'eth_accounts' }),
+      selected.request({ method: 'eth_chainId' })
+    ]);
+
+    if (!Array.isArray(accounts) || !isAddress(accounts[0])) {
+      throw new Error('The wallet did not return an EVM account.');
+    }
+
+    applyContext(accounts[0], chain);
+    log(`Connected ${short(accounts[0])}.`, 'success');
+  } catch (error) {
+    unbindProvider();
+    applyContext(undefined, undefined);
+    report(error);
+  } finally {
+    connecting = false;
+    refreshControls();
+  }
+}
+
+async function disconnectWallet() {
+  if (walletBusy || connecting) return;
+
+  unbindProvider();
+  provider = undefined;
+  revision++;
+  applyContext(undefined, undefined);
+  refreshControls();
+  log('Disconnected locally. Extension permissions and token approvals are unchanged.');
+}
+
+async function readRpc(method, params, ctx = snapshot()) {
+  if (!['eth_getBalance', 'eth_call', 'eth_getCode'].includes(method)) {
+    throw new Error('This RPC fallback is read-only.');
+  }
+
+  assertCurrent(ctx);
+
+  try {
+    const result = await ctx.provider.request({ method, params });
+    assertCurrent(ctx);
+
+    if (result !== null && result !== undefined) return result;
+  } catch (error) {
+    assertCurrent(ctx);
+    if (!$('allow-rpc').checked) {
+      throw new Error(
+        'Your wallet could not answer this read request. ' +
+        'Optionally enable public RPC fallback under Privacy & read access.'
+      );
+    }
+  }
+
+  if (!$('allow-rpc').checked) {
+    throw new Error('The wallet returned no data. Public RPC fallback is disabled.');
+  }
+
+  const endpoint = NETWORKS[ctx.chain]?.rpc;
+
+  if (!endpoint) {
+    throw new Error('No public read RPC is configured for this network.');
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method,
+        params
+      })
+    });
+
+    if (!response.ok) throw new Error('Public RPC request failed.');
+
+    const data = await response.json();
+    assertCurrent(ctx);
+
+    if (data.error || data.result === undefined || data.result === null) {
+      throw new Error('Public RPC returned no usable data.');
+    }
+
+    return data.result;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function refreshNativeBalance() {
+  if (!provider || !account || !activeChain) return;
+
+  const ctx = snapshot();
+  $('native-balance').textContent = 'Loading balance…';
+
+  try {
+    const balance = parseRpcInteger(
+      await readRpc('eth_getBalance', [ctx.account, 'latest'], ctx),
+      'Balance query'
+    );
+
+    assertCurrent(ctx);
+    nativeBalance = balance;
+
+    $('native-balance').textContent =
+      `Available: ${formatUnits(balance, 18)} ` +
+      (NETWORKS[ctx.chain]?.symbol || 'native asset');
+  } catch (error) {
+    if (isCurrent(ctx)) {
+      nativeBalance = undefined;
+      $('native-balance').textContent = errorMessage(error);
+    }
+  }
+}
+
+function renderAssets() {
+  const list = $('asset-list');
+  list.replaceChildren();
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = detectedAssets.length
+    ? 'Choose a token — verify its contract'
+    : 'Find tokens or import a contract below';
+  list.append(placeholder);
+
+  detectedAssets.forEach((asset, index) => {
+    const option = document.createElement('option');
+    option.value = String(index);
+    option.textContent =
+      `${asset.symbol} · ${asset.formattedBalance} · ${short(asset.contract)}`;
+    list.append(option);
+  });
+
+  list.disabled = !account || !detectedAssets.length;
+}
+
+async function loadAssets() {
+  if (!account || walletBusy || pending) return;
+
+  const ctx = snapshot();
+  const requestId = ++assetsRequestId;
+
+  assetsController?.abort();
+  const controller = new AbortController();
+  assetsController = controller;
+
+  detectedAssets = [];
+  renderAssets();
+  refreshControls();
+
+  $('asset-status').textContent = 'Finding indexed token balances…';
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const query = new URLSearchParams({
+      address: ctx.account,
+      chainId: ctx.chain
+    });
+
+    const response = await fetch(`/api/assets?${query}`, {
+      signal: controller.signal,
+      cache: 'no-store',
+      headers: { Accept: 'application/json' }
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.error || `Asset lookup failed (${response.status}).`);
+    }
+
+    if (!Array.isArray(data?.assets)) {
+      throw new Error('The asset API returned an invalid response.');
+    }
+
+    assertCurrent(ctx);
+    if (requestId !== assetsRequestId) return;
+
+    detectedAssets = data.assets.filter(asset =>
+      asset &&
+      isAddress(asset.contract) &&
+      typeof asset.symbol === 'string' &&
+      typeof asset.formattedBalance === 'string'
+    );
+
+    renderAssets();
+
+    $('asset-status').textContent =
+      `${detectedAssets.length} indexed token(s) found. ` +
+      (data.partial ? 'Results are incomplete. ' : '') +
+      'Verify contracts; indexed tokens may include spam.';
+  } catch (error) {
+    if (isCurrent(ctx) && requestId === assetsRequestId) {
+      $('asset-status').textContent =
+        error.name === 'AbortError'
+          ? 'Discovery timed out. Retry or import a contract manually.'
+          : `${errorMessage(error)} You can import a contract manually.`;
+    }
+  } finally {
+    clearTimeout(timeout);
+
+    if (requestId === assetsRequestId) {
+      assetsController = undefined;
+      refreshControls();
+    }
+  }
+}
+
+function decodeSymbol(hex) {
+  try {
+    if (!/^0x(?:[0-9a-f]{2})+$/i.test(hex)) return 'Token';
+
+    const bytes = Uint8Array.from(
+      hex.slice(2).match(/.{2}/g),
+      pair => parseInt(pair, 16)
+    );
+
+    let content;
+
+    if (bytes.length === 32) {
+      const end = bytes.indexOf(0);
+      content = bytes.slice(0, end < 0 ? 32 : end);
+    } else {
+      const offset = Number(BigInt('0x' + hex.slice(2, 66)));
+
+      if (
+        !Number.isSafeInteger(offset) ||
+        offset < 32 ||
+        offset + 32 > bytes.length
+      ) return 'Token';
+
+      const lengthHex = Array.from(
+        bytes.slice(offset, offset + 32),
+        byte => byte.toString(16).padStart(2, '0')
+      ).join('');
+
+      const length = Number(BigInt('0x' + lengthHex));
+
+      if (
+        !Number.isSafeInteger(length) ||
+        length < 0 ||
+        length > 128 ||
+        offset + 32 + length > bytes.length
+      ) return 'Token';
+
+      content = bytes.slice(offset + 32, offset + 32 + length);
+    }
+
+    return new TextDecoder('utf-8', { fatal: true })
+      .decode(content)
+      .replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, '')
+      .trim()
+      .slice(0, 40) || 'Token';
+  } catch {
+    return 'Token';
+  }
+}
+
+async function loadToken() {
+  if (!account || walletBusy || pending) return;
+
+  const ctx = snapshot();
+  const loadId = ++tokenLoadId;
+  const contract = requireAddress($('token-contract').value, 'Token contract', true);
+
+  token = undefined;
+  tokenLoading = true;
+  refreshControls();
+  $('token-balance').textContent = 'Checking token precision and balance…';
+
+  try {
+    const [decimalsRaw, balanceRaw, symbolRaw] = await Promise.all([
+      readRpc('eth_call', [{ to: contract, data: '0x313ce567' }, 'latest'], ctx),
+      readRpc('eth_call', [{
+        to: contract,
+        data: '0x70a08231' + addressWord(ctx.account)
+      }, 'latest'], ctx),
+      readRpc('eth_call', [{ to: contract, data: '0x95d89b41' }, 'latest'], ctx)
+        .catch(() => '0x')
+    ]);
+
+    assertCurrent(ctx);
+
+    if (
+      loadId !== tokenLoadId ||
+      !sameAddress(contract, $('token-contract').value.trim())
+    ) return;
+
+    const decimals = Number(parseAbiUint(decimalsRaw, 'Token decimals'));
+
+    if (!Number.isInteger(decimals) || decimals < 0 || decimals > 255) {
+      throw new Error('The contract returned unsupported token precision.');
+    }
+
+    const balance = parseAbiUint(balanceRaw, 'Token balance');
+
+    token = {
+      ctx,
+      contract,
+      decimals,
+      balance,
+      symbol: decodeSymbol(symbolRaw)
+    };
+
+    $('token-balance').textContent =
+      `${token.symbol}: ${formatUnits(balance, decimals)} available · ` +
+      `${decimals} decimals · ${contract}`;
+  } catch (error) {
+    if (isCurrent(ctx) && loadId === tokenLoadId) {
+      $('token-balance').textContent = errorMessage(error);
+      throw error;
+    }
+  } finally {
+    if (loadId === tokenLoadId) {
+      tokenLoading = false;
+      refreshControls();
+    }
+  }
+}
+
+async function withWalletAction(action) {
+  if (walletBusy || connecting || pending) {
+    report(new Error('Finish or reject the current wallet request first.'));
+    return;
+  }
+
+  walletBusy = true;
+  clearFeedback();
+  refreshControls();
+
+  try {
+    await action(snapshot());
+  } catch (error) {
+    report(error);
+  } finally {
+    walletBusy = false;
+    refreshControls();
+  }
+}
+
+async function submitTransaction(ctx, tx) {
+  await verifyWallet(ctx);
+
+  const hash = await ctx.provider.request({
+    method: 'eth_sendTransaction',
+    params: [tx]
+  });
+
+  if (typeof hash === 'string' && /^0x[0-9a-f]{64}$/i.test(hash)) {
+    log(`Transaction submitted, not yet confirmed: ${hash}`, 'success');
+  } else {
+    log('The wallet returned a transaction response. Check its activity history.', 'success');
+  }
+
+  if (isCurrent(ctx)) void refreshNativeBalance();
+  return hash;
+}
+
+$('native-form').addEventListener('submit', event => {
+  event.preventDefault();
+
+  void withWalletAction(async ctx => {
+    const to = requireAddress($('send-to').value, 'Recipient', true);
+    const value = units($('send-value').value, 18);
+
+    if (value <= 0n) throw new Error('Enter an amount greater than zero.');
+
+    const balance = parseRpcInteger(
+      await readRpc('eth_getBalance', [ctx.account, 'latest'], ctx),
+      'Balance query'
+    );
+
+    if (value >= balance) {
+      throw new Error('Leave some native currency available for network fees.');
+    }
+
+    await submitTransaction(ctx, {
+      from: ctx.account,
+      to,
+      value: quantity(value)
+    });
+  });
+});
+
+$('token-form').addEventListener('submit', event => {
+  event.preventDefault();
+
+  void withWalletAction(async ctx => {
+    const selected = token;
+
+    if (
+      !selected ||
+      !isCurrent(selected.ctx) ||
+      !sameAddress(selected.contract, $('token-contract').value.trim())
+    ) {
+      throw new Error('Check the token contract and balance first.');
+    }
+
+    const to = requireAddress($('token-to').value, 'Recipient', true);
+    const amount = units($('token-value').value, selected.decimals);
+
+    if (amount <= 0n) throw new Error('Enter an amount greater than zero.');
+
+    const [freshBalance, freshDecimals] = await Promise.all([
+      readRpc('eth_call', [{
+        to: selected.contract,
+        data: '0x70a08231' + addressWord(ctx.account)
+      }, 'latest'], ctx),
+      readRpc('eth_call', [{
+        to: selected.contract,
+        data: '0x313ce567'
+      }, 'latest'], ctx)
+    ]);
+
+    if (
+      Number(parseAbiUint(freshDecimals, 'Token decimals')) !== selected.decimals
+    ) {
+      throw new Error('Token precision changed. Reload the token.');
+    }
+
+    if (amount > parseAbiUint(freshBalance, 'Token balance')) {
+      throw new Error('Amount exceeds the current token balance.');
+    }
+
+    await submitTransaction(ctx, {
+      from: ctx.account,
+      to: selected.contract,
+      value: '0x0',
+      data: '0xa9059cbb' + addressWord(to) + uintWord(amount)
+    });
+
+    if (isCurrent(ctx)) {
+      token = undefined;
+      $('token-balance').textContent =
+        'Transfer submitted. Reload the balance after confirmation.';
+    }
+  });
+});
+
+$('nft-form').addEventListener('submit', event => {
+  event.preventDefault();
+
+  void withWalletAction(async ctx => {
+    const contract = requireAddress($('nft-contract').value, 'NFT contract', true);
+    const to = requireAddress($('nft-to').value, 'Recipient', true);
+    const input = $('nft-token').value.trim();
+
+    if (!/^(?:\d+|0x[0-9a-f]+)$/i.test(input) || input.length > 100) {
+      throw new Error('Enter a valid decimal or hexadecimal token ID.');
+    }
+
+    const tokenId = BigInt(input);
+    const encodedId = uintWord(tokenId);
+
+    const [interfaceRaw, ownerRaw] = await Promise.all([
+      readRpc('eth_call', [{
+        to: contract,
+        data: '0x01ffc9a7' + '80ac58cd'.padEnd(64, '0')
+      }, 'latest'], ctx),
+      readRpc('eth_call', [{
+        to: contract,
+        data: '0x6352211e' + encodedId
+      }, 'latest'], ctx)
+    ]);
+
+    if (parseAbiUint(interfaceRaw, 'ERC-721 interface query') !== 1n) {
+      throw new Error('This contract did not confirm ERC-721 support.');
+    }
+
+    if (!/^0x0{24}[0-9a-f]{40}$/i.test(ownerRaw)) {
+      throw new Error('The NFT contract returned an invalid owner.');
+    }
+
+    const owner = '0x' + ownerRaw.slice(-40);
+
+    if (!sameAddress(owner, ctx.account)) {
+      throw new Error('The connected account does not own this NFT.');
+    }
+
+    await submitTransaction(ctx, {
+      from: ctx.account,
+      to: contract,
+      value: '0x0',
+      data:
+        '0x42842e0e' +
+        addressWord(ctx.account) +
+        addressWord(to) +
+        encodedId
+    });
+  });
+});
+
+/* WalletConnect */
+
+function activeSessions() {
+  return wcClient ? Object.values(wcClient.getActiveSessions()) : [];
+}
+
+function sessionMatchesContext(session) {
+  if (!account || !activeChain) return false;
+
+  const approvedAccount = `${caipChain()}:${account}`.toLowerCase();
+
+  return Object.values(session.namespaces || {}).some(namespace =>
+    (namespace.accounts || []).some(
+      value => value.toLowerCase() === approvedAccount
+    )
+  );
+}
+
+async function disconnectSession(topic, message = 'Disconnected by user.') {
+  if (!wcClient) return;
+
+  try {
+    await wcClient.disconnectSession({
+      topic,
+      reason: { code: 6000, message }
+    });
+  } catch {
+    log('Could not confirm session disconnect. Check the connected dApp.', 'error');
+  }
+
+  renderSessions();
+}
+
+async function disconnectIncompatibleSessions() {
+  for (const session of activeSessions()) {
+    if (
+      !sessionMatchesContext(session) &&
+      !(pending?.state === 'forwarding' && pending.topic === session.topic)
+    ) {
+      await disconnectSession(
+        session.topic,
+        'Wallet account or network changed.'
+      );
+    }
+  }
+}
+
+function renderSessions() {
+  const target = $('sessions');
+  target.replaceChildren();
+
+  const sessions = activeSessions();
+
+  if (!sessions.length) {
+    const empty = document.createElement('p');
+    empty.className = 'empty';
+    empty.textContent = 'No active sessions.';
+    target.append(empty);
+    return;
+  }
+
+  for (const session of sessions) {
+    const entry = document.createElement('div');
+    entry.className = 'session';
+
+    const name = document.createElement('strong');
+    name.textContent = session.peer?.metadata?.name || 'Unnamed dApp';
+
+    const url = document.createElement('small');
+    url.textContent = session.peer?.metadata?.url || 'No URL supplied';
+
+    const scope = document.createElement('small');
+    scope.textContent = Object.values(session.namespaces || {})
+      .flatMap(namespace => namespace.accounts || [])
+      .join(', ');
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'danger';
+    button.textContent = 'Disconnect dApp';
+    button.disabled =
+      pending?.state === 'forwarding' && pending.topic === session.topic;
+
+    button.addEventListener('click', () => {
+      void (async () => {
+        if (pending?.topic === session.topic && pending.state === 'review') {
+          await rejectPending('Session disconnected.');
+        }
+        await disconnectSession(session.topic);
+      })().catch(report);
+    });
+
+    entry.append(name, url, scope, button);
+    target.append(entry);
+  }
+}
+
+async function initializeWalletConnect() {
+  if (wcClient) return wcClient;
+  if (wcInitialization) return wcInitialization;
+
+  if (!/^[0-9a-f]{32}$/i.test(PROJECT_ID)) {
+    throw new Error(
+      'Set your WalletConnect PROJECT_ID in index.html before pairing a dApp.'
+    );
+  }
+
+  wcInitialization = (async () => {
+    setRelay(false, 'Initializing WalletConnect…');
+
+    const [{ Core }, { Web3Wallet }] = await Promise.all([
+      import(CORE_MODULE),
+      import(WALLET_MODULE)
+    ]);
+
+    const core = new Core({ projectId: PROJECT_ID });
+
+    const client = await Web3Wallet.init({
+      core,
+      metadata: {
+        name: 'Spell Bridge',
+        description: 'Explicit-approval browser-wallet bridge',
+        url: window.location.origin,
+        icons: []
+      }
+    });
+
+    wcClient = client;
+
+    client.on('session_proposal', event => {
+      void handleProposal(event).catch(report);
+    });
+
+    client.on('session_request', event => {
+      void handleSessionRequest(event).catch(report);
+    });
+
+    client.on('session_delete', event => {
+      if (pending?.topic === event.topic && pending.state === 'review') {
+        clearPending(pending);
+      }
+      renderSessions();
+      log('A dApp session ended.');
+    });
+
+    client.on('session_expire', () => renderSessions());
+
+    core.relayer.on('relayer_connect', () =>
+      setRelay(true, 'WalletConnect relay connected')
+    );
+
+    core.relayer.on('relayer_disconnect', () =>
+      setRelay(false, 'WalletConnect relay disconnected')
+    );
+
+    // Do not silently trust persisted sessions after a fresh page load.
+    for (const session of activeSessions()) {
+      await disconnectSession(
+        session.topic,
+        'Reconnect to approve this browser session.'
+      );
+    }
+
+    setRelay(
+      !!core.relayer.connected,
+      core.relayer.connected
+        ? 'WalletConnect relay connected'
+        : 'WalletConnect ready; relay connecting'
+    );
+
+    renderSessions();
+    return client;
+  })();
+
+  try {
+    return await wcInitialization;
+  } catch (error) {
+    wcClient = undefined;
+    setRelay(false, 'WalletConnect initialization failed');
+    throw error;
+  } finally {
+    wcInitialization = undefined;
+  }
+}
+
+function buildNamespaces(proposal, ctx) {
+  const chain = caipChain(ctx.chain);
+  const methods = new Set();
+  const events = new Set();
+
+  function inspect(key, namespace, required) {
+    if (!namespace || typeof namespace !== 'object') {
+      if (required) throw new Error('Invalid required namespace.');
+      return;
+    }
+
+    const supportedKey =
+      key === 'eip155' || /^eip155:\d+$/.test(key);
+
+    if (!supportedKey) {
+      if (required) throw new Error('This dApp requires a non-EVM namespace.');
+      return;
+    }
+
+    const chains = key === 'eip155'
+      ? namespace.chains
+      : [key];
+
+    if (!Array.isArray(chains) || !chains.length) {
+      if (required) throw new Error('The dApp did not specify required chains.');
+      return;
+    }
+
+    if (required && chains.some(value => value !== chain)) {
+      throw new Error(
+        'This dApp requires another network or multiple networks. ' +
+        'Pair using a proposal for the currently selected network only.'
+      );
+    }
+
+    if (!chains.includes(chain)) return;
+
+    const requestedMethods = namespace.methods || [];
+    const requestedEvents = namespace.events || [];
+
+    if (!Array.isArray(requestedMethods) || !Array.isArray(requestedEvents)) {
+      throw new Error('Invalid namespace permissions.');
+    }
+
+    for (const method of requestedMethods) {
+      if (METHODS.includes(method)) methods.add(method);
+      else if (required) {
+        throw new Error(`Required method is not supported: ${method}`);
+      }
+    }
+
+    for (const event of requestedEvents) {
+      if (EVENTS.includes(event)) events.add(event);
+      else if (required) {
+        throw new Error(`Required event is not supported: ${event}`);
+      }
+    }
+  }
+
+  for (const [key, namespace] of Object.entries(
+    proposal.requiredNamespaces || {}
+  )) {
+    inspect(key, namespace, true);
+  }
+
+  for (const [key, namespace] of Object.entries(
+    proposal.optionalNamespaces || {}
+  )) {
+    inspect(key, namespace, false);
+  }
+
+  if (!methods.size) {
+    throw new Error('The proposal contains no supported signing methods for this chain.');
+  }
+
+  return {
+    eip155: {
+      chains: [chain],
+      accounts: [`${chain}:${ctx.account}`],
+      methods: [...methods],
+      events: [...events]
+    }
+  };
+}
+
+function addReviewRow(label, value) {
+  const row = document.createElement('div');
+  row.className = 'row';
+
+  const title = document.createElement('span');
+  title.textContent = label;
+
+  const content = document.createElement('code');
+  content.textContent = typeof value === 'string'
+    ? value
+    : JSON.stringify(value, null, 2);
+
+  row.append(title, content);
+  $('request-summary').append(row);
+}
+
+function showPending(item, title, rows, raw) {
+  pending = item;
+  pending.state = 'review';
+
+  $('request-method').textContent = title;
+  $('request-summary').replaceChildren();
+
+  for (const [label, value] of rows) addReviewRow(label, value);
+
+  $('request-raw').textContent = JSON.stringify(raw, null, 2);
+  $('request-card').querySelector('details').open = false;
+  $('request-card').hidden = false;
+  $('approve-request').textContent =
+    item.kind === 'proposal' ? 'Approve connection' : 'Approve in extension';
+
+  clearTimeout(pendingTimer);
+
+  pendingTimer = setTimeout(() => {
+    if (pending === item && item.state === 'review') {
+      void rejectPending('Request expired.');
+    }
+  }, Math.max(0, item.deadline - Date.now()));
+
+  refreshControls();
+  announce('A new dApp request needs your review.');
+  $('request-heading').focus();
+}
+
+function clearPending(item) {
+  if (pending !== item) return;
+
+  clearTimeout(pendingTimer);
+  pending = undefined;
+  $('request-card').hidden = true;
+  $('request-raw').textContent = '';
+  $('request-summary').replaceChildren();
+  refreshControls();
+}
+
+async function respondError(event, code, message) {
+  await wcClient.respondSessionRequest({
+    topic: event.topic,
+    response: {
+      id: event.id,
+      jsonrpc: '2.0',
+      error: { code, message }
+    }
+  });
+}
+
+async function handleProposal(event) {
+  try {
+    if (!account || !activeChain || connecting) {
+      throw new Error('Connect a wallet before approving a session.');
+    }
+
+    if (pending || walletBusy) {
+      throw new Error('The bridge is busy. Try pairing again after the current request.');
+    }
+
+    const ctx = snapshot();
+    const proposal = event.params;
+    const namespaces = buildNamespaces(proposal, ctx);
+    const metadata = proposal.proposer?.metadata || {};
+    const expiry = Number(proposal.expiryTimestamp);
+
+    const deadline = Math.min(
+      Date.now() + 5 * 60 * 1000,
+      Number.isFinite(expiry) && expiry > 0
+        ? expiry * 1000
+        : Infinity
+    );
+
+    if (deadline <= Date.now()) throw new Error('The proposal expired.');
+
+    showPending({
+      kind: 'proposal',
+      id: event.id,
+      ctx,
+      namespaces,
+      deadline
+    }, 'Connect dApp', [
+      ['dApp', metadata.name || 'Unnamed dApp'],
+      ['Claimed URL', metadata.url || 'Not supplied'],
+      ['Network', `${NETWORKS[ctx.chain]?.name || 'EVM network'} · ${caipChain(ctx.chain)}`],
+      ['Account', ctx.account],
+      ['Methods', namespaces.eip155.methods.join('\n')]
+    ], {
+      metadata,
+      requiredNamespaces: proposal.requiredNamespaces,
+      optionalNamespaces: proposal.optionalNamespaces,
+      approvedNamespaces: namespaces
+    });
+  } catch (error) {
+    await wcClient.rejectSession({
+      id: event.id,
+      reason: { code: 5000, message: errorMessage(error) }
+    }).catch(() => {});
+
+    report(error);
+  }
+}
+
+function validateSigningRequest(event, ctx) {
+  assertCurrent(ctx);
+
+  const session = wcClient.getActiveSessions()[event.topic];
+
+  if (!session || session.expiry * 1000 <= Date.now()) {
+    throw new Error('The dApp session is missing or expired.');
+  }
+
+  if (event.params.chainId !== caipChain(ctx.chain)) {
+    throw new Error('The request targets a different network.');
+  }
+
+  const request = event.params.request;
+
+  if (!request || !METHODS.includes(request.method)) {
+    throw new Error('This signing method is not supported.');
+  }
+
+  const authorized = Object.values(session.namespaces || {}).some(namespace =>
+    (namespace.methods || []).includes(request.method) &&
+    (namespace.accounts || []).some(value =>
+      value.toLowerCase() === `${caipChain(ctx.chain)}:${ctx.account}`.toLowerCase()
+    )
+  );
+
+  if (!authorized) throw new Error('The session does not authorize this request.');
+
+  const params = request.params;
+  if (!Array.isArray(params)) throw new Error('Request parameters must be an array.');
+
+  if (request.method === 'eth_sendTransaction') {
+    if (
+      params.length !== 1 ||
+      !params[0] ||
+      typeof params[0] !== 'object' ||
+      Array.isArray(params[0])
+    ) {
+      throw new Error('Invalid transaction parameters.');
+    }
+
+    const tx = params[0];
+    const allowedFields = new Set([
+      'from', 'to', 'value', 'data', 'gas', 'gasPrice',
+      'maxFeePerGas', 'maxPriorityFeePerGas', 'nonce',
+      'chainId', 'type', 'accessList'
+    ]);
+
+    if (Object.keys(tx).some(key => !allowedFields.has(key))) {
+      throw new Error('The transaction contains unsupported fields.');
+    }
+
+    if (!sameAddress(tx.from, ctx.account)) {
+      throw new Error('The transaction sender is not the connected account.');
+    }
+
+    if (tx.to !== undefined && !isAddress(tx.to)) {
+      throw new Error('Invalid transaction recipient.');
+    }
+
+    if (tx.data !== undefined &&
+      (typeof tx.data !== 'string' || !/^0x(?:[0-9a-f]{2})*$/i.test(tx.data))) {
+      throw new Error('Invalid transaction calldata.');
+    }
+
+    for (const key of [
+      'value', 'gas', 'gasPrice', 'maxFeePerGas',
+      'maxPriorityFeePerGas', 'nonce', 'chainId', 'type'
+    ]) {
+      if (
+        tx[key] !== undefined &&
+        (typeof tx[key] !== 'string' || !/^0x(?:0|[1-9a-f][0-9a-f]*)$/i.test(tx[key]))
+      ) {
+        throw new Error(`Invalid transaction quantity: ${key}`);
+      }
+    }
+
+    if (tx.chainId !== undefined && BigInt(tx.chainId) !== BigInt(ctx.chain)) {
+      throw new Error('Transaction chain ID does not match the session.');
+    }
+
+    if (tx.type !== undefined && BigInt(tx.type) > 2n) {
+      throw new Error('This bridge only supports legacy, type 1, and type 2 transactions.');
+    }
+
+    if (
+      tx.gasPrice !== undefined &&
+      (tx.maxFeePerGas !== undefined || tx.maxPriorityFeePerGas !== undefined)
+    ) {
+      throw new Error('The transaction mixes incompatible fee fields.');
+    }
+
+    if (tx.accessList !== undefined) {
+      if (!Array.isArray(tx.accessList) || tx.accessList.some(entry =>
+        !entry ||
+        !isAddress(entry.address) ||
+        !Array.isArray(entry.storageKeys) ||
+        entry.storageKeys.some(key => !/^0x[0-9a-f]{64}$/i.test(key))
+      )) {
+        throw new Error('Invalid transaction access list.');
+      }
+    }
+  }
+
+  if (request.method === 'personal_sign') {
+    if (
+      params.length !== 2 ||
+      typeof params[0] !== 'string' ||
+      !/^0x(?:[0-9a-f]{2})*$/i.test(params[0]) ||
+      !sameAddress(params[1], ctx.account)
+    ) {
+      throw new Error('Expected personal_sign parameters: [hexMessage, connectedAccount].');
+    }
+  }
+
+  if (request.method === 'eth_signTypedData_v4') {
+    if (
+      params.length !== 2 ||
+      !sameAddress(params[0], ctx.account) ||
+      typeof params[1] !== 'string'
+    ) {
+      throw new Error('Expected typed-data v4 parameters: [connectedAccount, JSONString].');
+    }
+
+    let data;
+    try {
+      data = JSON.parse(params[1]);
+    } catch {
+      throw new Error('Typed data is not valid JSON.');
+    }
+
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      !data.domain ||
+      !data.types ||
+      typeof data.primaryType !== 'string' ||
+      !data.message
+    ) {
+      throw new Error('Typed data is missing required EIP-712 fields.');
+    }
+
+    if (data.domain.chainId !== undefined) {
+      const value = data.domain.chainId;
+
+      if (
+        !['string', 'number'].includes(typeof value) ||
+        (typeof value === 'number' && !Number.isSafeInteger(value))
+      ) {
+        throw new Error('Invalid typed-data domain chain ID.');
+      }
+
+      let domainChain;
+      try {
+        domainChain = BigInt(value);
+      } catch {
+        throw new Error('Invalid typed-data domain chain ID.');
+      }
+
+      if (domainChain !== BigInt(ctx.chain)) {
+        throw new Error('Typed-data domain targets a different network.');
+      }
+    }
+  }
+
+  return { session, request };
+}
+
+async function handleSessionRequest(event) {
+  try {
+    if (!account || connecting) throw new Error('No wallet is connected.');
+
+    if (pending || walletBusy) {
+      await respondError(event, -32002, 'Another approval is pending. Try again later.');
+      return;
+    }
+
+    const ctx = snapshot();
+    const { session, request } = validateSigningRequest(event, ctx);
+
+    const serialized = JSON.stringify(request.params);
+
+    if (serialized.length > 100000) {
+      throw new Error('This request is too large for safe review in this bridge.');
+    }
+
+    const expiry = Number(request.expiryTimestamp);
+    const deadline = Math.min(
+      Date.now() + 5 * 60 * 1000,
+      session.expiry * 1000,
+      Number.isFinite(expiry) && expiry > 0
+        ? expiry * 1000
+        : Infinity
+    );
+
+    if (deadline <= Date.now()) throw new Error('The request expired.');
+
+    const rows = [
+      ['dApp', session.peer?.metadata?.name || 'Unnamed dApp'],
+      ['Claimed URL', session.peer?.metadata?.url || 'Not supplied'],
+      ['Network', caipChain(ctx.chain)],
+      ['Account', ctx.account]
+    ];
+
+    if (request.method === 'eth_sendTransaction') {
+      const tx = request.params[0];
+
+      rows.push(
+        ['Recipient', tx.to || 'Contract deployment'],
+        ['Native value',
+          `${formatUnits(BigInt(tx.value || '0x0'), 18, 18)} ` +
+          (NETWORKS[ctx.chain]?.symbol || 'native asset')],
+        ['Calldata', tx.data || '0x']
+      );
+    } else if (request.method === 'personal_sign') {
+      rows.push(['Message (hex)', request.params[0]]);
+
+      try {
+        const pairs = request.params[0].slice(2).match(/.{2}/g) || [];
+        const bytes = Uint8Array.from(pairs, value => parseInt(value, 16));
+        const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        rows.push(['UTF-8 preview', JSON.stringify(text)]);
+      } catch {
+        rows.push(['Message', 'Binary content — no valid UTF-8 preview.']);
+      }
+    } else {
+      const typed = JSON.parse(request.params[1]);
+      rows.push(
+        ['Domain', typed.domain],
+        ['Primary type', typed.primaryType],
+        ['Message', typed.message]
+      );
+    }
+
+    showPending({
+      kind: 'request',
+      id: event.id,
+      topic: event.topic,
+      event,
+      ctx,
+      deadline
+    }, request.method, rows, {
+      chainId: event.params.chainId,
+      method: request.method,
+      params: request.params
+    });
+  } catch (error) {
+    await respondError(event, 4100, errorMessage(error)).catch(() => {});
+    report(error);
+  }
+}
+
+async function rejectPending(message = 'User rejected the request.') {
+  const item = pending;
+  if (!item || item.state !== 'review') return;
+
+  item.state = 'rejecting';
+  refreshControls();
+
+  try {
+    if (item.kind === 'proposal') {
+      await wcClient.rejectSession({
+        id: item.id,
+        reason: { code: 5000, message }
+      });
+    } else {
+      await respondError(item.event, 4001, message);
+    }
+
+    log(message);
+  } catch {
+    log('The rejection could not be delivered; the request may have expired.', 'error');
+  } finally {
+    clearPending(item);
+  }
+}
+
+async function approvePending() {
+  const item = pending;
+  if (!item || item.state !== 'review' || walletBusy) return;
+
+  item.state = 'forwarding';
+  walletBusy = true;
+  clearTimeout(pendingTimer);
+  clearFeedback();
+  refreshControls();
+  renderSessions();
+
+  let walletSucceeded = false;
+  let sessionApproved = false;
+
+  try {
+    if (Date.now() >= item.deadline) throw new Error('The request expired.');
+
+    await verifyWallet(item.ctx);
+
+    if (Date.now() >= item.deadline) throw new Error('The request expired.');
+
+    if (item.kind === 'proposal') {
+      const session = await wcClient.approveSession({
+        id: item.id,
+        namespaces: item.namespaces
+      });
+
+      sessionApproved = true;
+
+      if (!isCurrent(item.ctx)) {
+        await disconnectSession(
+          session.topic,
+          'Wallet context changed during connection approval.'
+        );
+        throw new Error('Wallet changed during connection approval. Pair again.');
+      }
+
+      log('dApp connection approved.', 'success');
+    } else {
+      const { request } = validateSigningRequest(item.event, item.ctx);
+
+      // Forward the exact validated method and parameters.
+      // No recipient, value, calldata, fee, or signing fields are rewritten.
+      const result = await item.ctx.provider.request({
+        method: request.method,
+        params: request.params
+      });
+
+      walletSucceeded = true;
+
+      if (request.method === 'eth_sendTransaction') {
+        log(
+          typeof result === 'string' && /^0x[0-9a-f]{64}$/i.test(result)
+            ? `dApp transaction submitted, not yet confirmed: ${result}`
+            : 'The wallet completed the transaction request. Check its activity.',
+          'success'
+        );
+      } else {
+        log('The wallet completed the signing request.', 'success');
+      }
+
+      await wcClient.respondSessionRequest({
+        topic: item.topic,
+        response: {
+          id: item.id,
+          jsonrpc: '2.0',
+          result
+        }
+      });
+    }
+  } catch (error) {
+    if (walletSucceeded) {
+      log(
+        'The wallet completed the action, but its response could not be delivered. ' +
+        'Do not retry a transaction without checking wallet activity.',
+        'error'
+      );
+    } else if (item.kind === 'proposal' && !sessionApproved) {
+      await wcClient.rejectSession({
+        id: item.id,
+        reason: { code: 5000, message: errorMessage(error) }
+      }).catch(() => {});
+    } else if (item.kind === 'request') {
+      const code = Number.isInteger(error?.code) ? error.code : -32000;
+      await respondError(item.event, code, errorMessage(error)).catch(() => {});
+    }
+
+    report(error);
+  } finally {
+    walletBusy = false;
+    clearPending(item);
+    renderSessions();
+    await disconnectIncompatibleSessions();
+    refreshControls();
+
+    if (account) void refreshNativeBalance();
+  }
+}
+
+function validatePairingUri(value) {
+  const uri = value.trim();
+
+  if (uri.length > 2048) throw new Error('Pairing URI is too long.');
+
+  const match = /^wc:([0-9a-f]{64})@2\?(.+)$/i.exec(uri);
+  if (!match) throw new Error('Enter a valid WalletConnect v2 pairing URI.');
+
+  const query = new URLSearchParams(match[2]);
+
+  if (
+    query.getAll('symKey').length !== 1 ||
+    !/^[0-9a-f]{64}$/i.test(query.get('symKey') || '') ||
+    query.getAll('relay-protocol').length !== 1 ||
+    query.get('relay-protocol') !== 'irn'
+  ) {
+    throw new Error('The pairing URI has invalid relay or key parameters.');
+  }
+
+  const expiry = query.get('expiryTimestamp');
+
+  if (
+    expiry !== null &&
+    (!/^\d+$/.test(expiry) || Number(expiry) * 1000 <= Date.now())
+  ) {
+    throw new Error('The pairing URI has expired or has an invalid expiry.');
+  }
+
+  return uri;
+}
+
+$('pair-form').addEventListener('submit', event => {
+  event.preventDefault();
+
+  if (pairing || walletBusy || pending || !account) return;
+
+  void (async () => {
+    pairing = true;
+    clearFeedback();
+    refreshControls();
+
+    try {
+      const ctx = snapshot();
+      const uri = validatePairingUri($('wc-uri').value);
+      const client = await initializeWalletConnect();
+
+      assertCurrent(ctx);
+      await client.core.pairing.pair({ uri });
+
+      $('wc-uri').value = '';
+      log('Pairing initiated. Waiting for the dApp connection proposal.');
+    } catch (error) {
+      report(error);
+    } finally {
+      pairing = false;
+      refreshControls();
+    }
+  })();
+});
+
+/* Remaining UI bindings */
+
+$('rescan').addEventListener('click', discover);
+$('disconnect').addEventListener('click', () => void disconnectWallet());
+$('clear-log').addEventListener('click', () => $('log').replaceChildren());
+$('refresh-native').addEventListener('click', () => void refreshNativeBalance());
+$('refresh-assets').addEventListener('click', () => void loadAssets());
+$('load-token').addEventListener('click', () => {
+  clearFeedback();
+  void loadToken().catch(report);
+});
+
+$('token-contract').addEventListener('input', () => {
+  token = undefined;
+  tokenLoadId++;
+  tokenLoading = false;
+  $('token-value').value = '';
+  $('token-balance').textContent = 'Check this contract before sending tokens.';
+  refreshControls();
+});
+
+$('asset-list').addEventListener('change', () => {
+  const value = $('asset-list').value;
+  if (value === '') return;
+
+  const asset = detectedAssets[Number(value)];
+  if (!asset || walletBusy || pending) return;
+
+  $('token-contract').value = asset.contract;
+  clearFeedback();
+  void loadToken().catch(report);
+});
+
+$('send-token-max').addEventListener('click', () => {
+  if (!token || !isCurrent(token.ctx)) return;
+
+  $('token-value').value = formatUnits(
+    token.balance,
+    token.decimals,
+    token.decimals
+  );
+});
+
+$('allow-rpc').addEventListener('change', () => {
+  if (account) void refreshNativeBalance();
+});
+
+$('network').addEventListener('change', () => {
+  const nextChain = $('network').value;
+
+  void withWalletAction(async ctx => {
+    try {
+      await ctx.provider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: nextChain }]
+      });
+
+      const [accounts, chain] = await Promise.all([
+        ctx.provider.request({ method: 'eth_accounts' }),
+        ctx.provider.request({ method: 'eth_chainId' })
+      ]);
+
+      if (provider === ctx.provider) applyContext(accounts?.[0], chain);
+    } catch (error) {
+      $('network').value = activeChain || ctx.chain;
+
+      if (error?.code === 4902) {
+        throw new Error('Add this network in your wallet, then try switching again.');
+      }
+
+      throw error;
+    }
+  });
+});
+
+$('reject-request').addEventListener('click', () => void rejectPending());
+$('approve-request').addEventListener('click', () => void approvePending());
+
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+
+function activateTab(selected, focus = false) {
+  for (const tab of tabs) {
+    const active = tab === selected;
+    tab.setAttribute('aria-selected', String(active));
+    tab.tabIndex = active ? 0 : -1;
+    $(tab.getAttribute('aria-controls')).hidden = !active;
+  }
+
+  clearFeedback();
+  if (focus) selected.focus();
+}
+
+tabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => activateTab(tab));
+
+  tab.addEventListener('keydown', event => {
+    let next;
+
+    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+
+    event.preventDefault();
+    activateTab(tabs[next], true);
+  });
+});
+
+log('Ready. Connect a browser wallet to begin.');
+discover();
+setTimeout(discover, 500);
+refreshControls();
 </script>
 </body>
 </html>
